@@ -307,7 +307,9 @@ GxEPD2_BW<GxEPD2_583_T8, GxEPD2_583_T8::HEIGHT> display(GxEPD2_583_T8(/*CS=5*/ 1
 #include "u8g2_mfyuanhei_16_gb2312.h"
 
 U8G2_FOR_ADAFRUIT_GFX u8g2Fonts;
+U8G2 u8g2;
 #include "toxicsoul.h"
+#include "ceep_english_word.h"
 #include <ESPDateTime.h>
 
 const char *WEEKDAY_CN[] = {"周日", "周一", "周二", "周三", "周四", "周五", "周六"};
@@ -671,128 +673,172 @@ enum PageContent : u8_t
   WEATHER = 1
 };
 
-void ShowPageHeader()
+// 头部横线
+void ShowHeaderLine()
 {
-  u8g2Fonts.setFont(u8g2_mfyuanhei_16_gb2312);
-  u8g2Fonts.drawUTF8(48, 64, DateTime.format(DateFormatter::DATE_ONLY).c_str());
-
-  int16_t cityNameWidth = u8g2Fonts.getUTF8Width(gi.name.c_str());
-  u8g2Fonts.drawUTF8((DISPLAY_WIDTH - cityNameWidth - 48), 64, gi.name.c_str());
-
-  u8g2Fonts.setFont(u8g2_mfyuehei_14_gb2312);
-  u8g2Fonts.drawUTF8(48, 64 + 24, WEEKDAY_EN[DateTime.getParts().getWeekDay()]);
+  // draw a line
+  u8g2.drawLine(28, 28, DISPLAY_WIDTH - 28, 28);
 }
-void ShowCurrentDate()
+
+// 头部日期和天气
+void ShowWeatherAndDate()
 {
-  String dateInCenter = String(DateTime.getParts().getMonthDay());
+  // 日期
+  u8g2Fonts.setFont(u8g2_mfyuanhei_18_gb2312);
+  u8g2Fonts.drawUTF8(28, 36, DateTime.format(DateFormatter::DATE_ONLY).c_str());
+
+  // 星期
+  u8g2Fonts.setFont(u8g2_mfyuehei_12_gb2312);
+  u8g2Fonts.drawUTF8(102, 43, WEEKDAY_CN[DateTime.getParts().getWeekDay()]);
+
+  // 竖线
+  u8g2.drawLine(287, 34, 287, 64);
+  // 天气
+  String weather = cw.text;
+  weather.concat(" ");
+  weather.concat(cw.feelsLike);
+  weather.concat("°C");
+  u8g2Fonts.setFont(u8g2_mfyuehei_18_gb2312);
+  int16_t weatherWidth = u8g2Fonts.getUTF8Width(weather.c_str());
+  u8g2Fonts.drawUTF8(DISPLAY_WIDTH - weatherWidth - 28, 36, weather.c_str());
+
+  // 城市
+  u8g2Fonts.setFont(u8g2_mfyuehei_18_gb2312);
+  int16_t cityNameWidth = u8g2Fonts.getUTF8Width(gi.name.c_str());
+  u8g2Fonts.drawUTF8((DISPLAY_WIDTH - cityNameWidth - weatherWidth - 28), 36, gi.name.c_str());
+}
+
+// 外边框
+void ShowBorder()
+{
+  u8g2.drawFrame(28, 70, DISPLAY_WIDTH - 28 * 2, 548);
+}
+// 判断是不是闰年
+bool isLeap(int year)
+{
+  return (!(year % 4) && (year % 100)) || !(year % 400);
+  //(1) 被4整除且不被100整除 或
+  //(2) 被400整除
+}
+
+// 当前时间(几号) 和剩余天数
+void ShowCurrentMonthDay()
+{
+  int monthDay = DateTime.getParts().getMonthDay();
+  String dateInCenter = String(monthDay);
   int m = DateTime.getParts().getMonth();
 
+  // 每月的几号
   u8g2Fonts.setFont(u8g2_mfxinran_92_number);
   int16_t dateWidth = u8g2Fonts.getUTF8Width(dateInCenter.c_str());
-  u8g2Fonts.drawUTF8((DISPLAY_WIDTH - dateWidth) / 2, 300, dateInCenter.c_str());
-
-  u8g2Fonts.setFont(u8g2_mfyuehei_14_gb2312);
-  int16_t monthWidth = u8g2Fonts.getUTF8Width(MONTH_EN[m]);
-  u8g2Fonts.drawUTF8((DISPLAY_WIDTH - monthWidth) / 2, 340, MONTH_EN[m]);
+  u8g2Fonts.drawUTF8((DISPLAY_WIDTH - dateWidth) / 2, 138, dateInCenter.c_str());
+  // 月份
+  // u8g2Fonts.setFont(u8g2_mfyuehei_14_gb2312);
+  // int16_t monthWidth = u8g2Fonts.getUTF8Width(MONTH_CN[m]);
+  // u8g2Fonts.drawUTF8((DISPLAY_WIDTH - monthWidth) / 2, 340, MONTH_CN[m]);
 }
 
-void ShowToxicSoul()
+// 这个月剩余几天
+void ShowLeftoverDay()
 {
-  u16_t r = random(ToxicSoulCount);
-  const char *soul = ToxicSoul[r];
-  Serial.printf("pick %u: %s\n", r, soul);
-  u8g2Fonts.setFont(u8g2_mfyuehei_18_gb2312);
-  DrawMultiLineString(string(soul), 80, 420, 300, 36);
-}
-
-void ShowWeatherFoot()
-{
-  String foot = cw.text;
-  foot.concat(" / 空气质量等级-");
-  foot.concat(caq.category);
-  foot.concat(" / 体感温度 ");
-  foot.concat(cw.feelsLike);
-  foot.concat("°C");
-
-  u8g2Fonts.setFont(u8g2_mfyuehei_14_gb2312);
-  u8g2Fonts.drawUTF8(88, DISPLAY_HEIGHT - 24, foot.c_str());
-}
-
-void ShowWeatherContent()
-{
-
-  u8g2Fonts.setFont(u8g2_deng_56_temperature);
-  String currentAQIString = caq.aqi;
-  int16_t tempWidth = u8g2Fonts.getUTF8Width(currentAQIString.c_str());
-  u8g2Fonts.drawUTF8(((DISPLAY_WIDTH / 2) - tempWidth + DISPLAY_WIDTH) / 2, 190, currentAQIString.c_str());
-
-  u8g2Fonts.setFont(u8g2_mfyuehei_14_gb2312);
-  String currentAQICategoryString = "空气质量:";
-  currentAQICategoryString.concat(caq.category);
-  int16_t categoryWidth = u8g2Fonts.getUTF8Width(currentAQICategoryString.c_str());
-  u8g2Fonts.drawUTF8(((DISPLAY_WIDTH / 2) - categoryWidth + DISPLAY_WIDTH) / 2, 245, currentAQICategoryString.c_str());
-
-  String currentPM25 = "PM2.5: ";
-  currentPM25.concat(caq.pm2p5);
-  int16_t pm25Width = u8g2Fonts.getUTF8Width(currentPM25.c_str());
-  u8g2Fonts.drawUTF8(((DISPLAY_WIDTH / 2) - pm25Width + DISPLAY_WIDTH) / 2, 275, currentPM25.c_str());
-
-  String currentPM10 = "PM10: ";
-  currentPM10.concat(caq.pm10);
-  int16_t pm10Width = u8g2Fonts.getUTF8Width(currentPM10.c_str());
-  u8g2Fonts.drawUTF8(((DISPLAY_WIDTH / 2) - pm10Width + DISPLAY_WIDTH) / 2, 305, currentPM10.c_str());
-
-  String l1 = cw.text;
-  int16_t l1W = u8g2Fonts.getUTF8Width(l1.c_str());
-  u8g2Fonts.drawUTF8(((DISPLAY_WIDTH / 2) - l1W) / 2, 230, l1.c_str());
-
-  String l2 = cw.windDir;
-  l2.concat(cw.windScale);
-  l2.concat("级");
-  int16_t l2W = u8g2Fonts.getUTF8Width(l2.c_str());
-  u8g2Fonts.drawUTF8(((DISPLAY_WIDTH / 2) - l2W) / 2, 260, l2.c_str());
-
-  String qwfw = dws[0].tempMin;
-  qwfw.concat("° ~ ");
-  qwfw.concat(dws[0].tempMax);
-  qwfw.concat("°");
-  int16_t dqwdWidth = u8g2Fonts.getUTF8Width(qwfw.c_str());
-  u8g2Fonts.drawUTF8(((DISPLAY_WIDTH / 2) - dqwdWidth) / 2, 290, qwfw.c_str());
-
-  String tempCurrent = "当前气温";
-  tempCurrent.concat(cw.temp);
-  tempCurrent.concat("°");
-  int16_t tempCurrentWidth = u8g2Fonts.getUTF8Width(tempCurrent.c_str());
-  u8g2Fonts.drawUTF8(((DISPLAY_WIDTH / 2) - tempCurrentWidth) / 2, 320, tempCurrent.c_str());
-
-  display.drawLine(DISPLAY_WIDTH / 2, 140, DISPLAY_WIDTH / 2, 330, GxEPD_BLACK);
+  int monthDay = DateTime.getParts().getMonthDay();
+  int m = DateTime.getParts().getMonth();
 
   u8g2Fonts.setFont(u8g2_mfyuehei_12_gb2312);
-  String test = "-22° ~ -88°";
-  Serial.printf("每天需要的气温宽度:%u\n", u8g2Fonts.getUTF8Width(test.c_str()));
+  int leftoverDay;
+  int currentYear = DateTime.getParts().getYear();
+  if (m == 1 || m == 3 || m == 5 || m == 7 || m == 8 || m == 10 || m == 12)
+  {
+    leftoverDay = 31 - monthDay;
+  }
+  else if (m == 4 || m == 6 || m == 9 || m == 11)
+  {
+    leftoverDay = 30 - monthDay;
+  }
+  else if (m == 2)
+  {
+    if (isLeap(currentYear))
+    {
+      leftoverDay = 29 - monthDay;
+    }
+    else
+    {
+      leftoverDay = 28 - monthDay;
+    }
+  }
+  String leftover = "这个月剩余 ";
+  leftover.concat(String(leftoverDay) + " 天");
+  int16_t leftoverWidth = u8g2Fonts.getUTF8Width(leftover.c_str());
+  u8g2Fonts.drawUTF8((DISPLAY_WIDTH - leftoverWidth) / 2, 285, leftover.c_str());
 }
 
+// 随机考研英语单词展示
+void ShowRandomEnglishWord()
+{
+  u16_t r = random(EnglishWordCount);
+  const char *word = EnglishWord[r];
+  Serial.printf("english word pick %u: %s\n", r, word);
+  u8g2Fonts.setFont(u8g2_mfyuehei_18_gb2312);
+  // todo: maybe just need one line
+  DrawMultiLineString(string(word), 113, 332, 300, 36);
+}
+
+// 横线
+void ShowHLine() {
+    u8g2.drawLine(58, 426, DISPLAY_WIDTH - 28*2, 426);
+}
+// todo: 考研心理学知识点展示
+void ShowPsychology() {
+
+}
+// 横线
+void ShowHLine() {
+  u8g2.drawLine(58, 426, DISPLAY_WIDTH - 28*2, 426);
+}
+// 心理学分类
+void ShowPsychologyType()
+{
+  u8g2Fonts.setFont(u8g2_mfyuehei_12_gb2312);
+  String pt = "《普通心理学》";
+  u8g2Fonts.drawUTF8(58, 596, pt.c_str());
+}
+// logo
+void ShowLogo()
+{
+  u8g2Fonts.setFont(u8g2_mfyuehei_14_gb2312);
+  String pt = "Soul";
+  int16_t ptWidth = u8g2Fonts.getUTF8Width(pt.c_str());
+  u8g2Fonts.drawUTF8(DISPLAY_WIDTH - ptWidth - 56, 594, pt.c_str());
+}
+// 最终展示界面
 void ShowPage(PageContent pageContent)
 {
   // TODO: 应该判断下咋决定是否刷新。例如距离上次请求超过多少小时再请求。
+
+  // 初始化
   cw = qwAPI.GetCurrentWeather(gi.id);
-  caq = qwAPI.GetCurrentAirQuality(gi.id);
-  dws = qwAPI.GetDailyWeather(gi.id);
+  // caq = qwAPI.GetCurrentAirQuality(gi.id);
+  // dws = qwAPI.GetDailyWeather(gi.id);
 
   display.setFullWindow();
   display.clearScreen(GxEPD_WHITE);
   display.setRotation(3);
+
+  u8g2.setFontMode(1);  /* activate transparent font mode */
+  u8g2.setDrawColor(1); /* color 1 for the box */
+
   u8g2Fonts.setFontMode(1);                  // use u8g2 transparent mode (this is default)
   u8g2Fonts.setFontDirection(0);             // left to right (this is default)
   u8g2Fonts.setForegroundColor(GxEPD_BLACK); // apply Adafruit GFX color
   u8g2Fonts.setBackgroundColor(GxEPD_WHITE); // apply Adafruit GFX color
 
-  String iconFileSmall = "32/";
-  iconFileSmall.concat(cw.icon);
-  iconFileSmall.concat(".bmp");
-  String iconFileBig = "64/";
-  iconFileBig.concat(cw.icon);
-  iconFileBig.concat(".bmp");
+  // 暂时用不到图片
+  // String iconFileSmall = "32/";
+  // iconFileSmall.concat(cw.icon);
+  // iconFileSmall.concat(".bmp");
+  // String iconFileBig = "64/";
+  // iconFileBig.concat(cw.icon);
+  // iconFileBig.concat(".bmp");
   /**
    * @brief 先写文字
    * 
@@ -804,21 +850,26 @@ void ShowPage(PageContent pageContent)
      * @brief 头部都用一样的吧
      * 
      */
-    ShowPageHeader();
+    ShowHeaderLine();
+    ShowWeatherAndDate();
 
-    switch (pageContent)
-    {
-    case PageContent::CALENDAR:
+    ShowBorder();
 
-      ShowCurrentDate();
-      break;
-    case PageContent::WEATHER:
-      ShowWeatherContent();
-      break;
-    }
+    // 几号
+    ShowCurrentMonthDay();
+    // 剩余几天
+    ShowLeftoverDay();
+    // 考研英语单词
+    ShowRandomEnglishWord();
 
-    ShowToxicSoul();
-    ShowWeatherFoot();
+    ShowHLine();
+    // 心理学内容
+    ShowPsychology();
+    ShowHLine();
+    // 那本书的
+    ShowPsychologyType();
+    // logo
+    ShowLogo();
 
   } while (display.nextPage());
 
@@ -826,31 +877,37 @@ void ShowPage(PageContent pageContent)
    * @brief 貌似没法让u8g2和平共处，所以只能先输出文字再输出需要显示的图片，导致整体刷新时间太长。
    * 
    */
-  switch (pageContent)
-  {
-  case PageContent::CALENDAR:
-    drawBitmapFromSpiffs_Buffered(iconFileSmall.c_str(), 48, DISPLAY_HEIGHT - 48, false, true, false);
-    break;
-  case PageContent::WEATHER:
-    drawBitmapFromSpiffs_Buffered(iconFileSmall.c_str(), 48, DISPLAY_HEIGHT - 48, false, true, false);
-    drawBitmapFromSpiffs_Buffered(iconFileBig.c_str(), 88, 140, false, true, false);
-    break;
-  }
+  // switch (pageContent)
+  // {
+  // case PageContent::CALENDAR:
+  //   drawBitmapFromSpiffs_Buffered(iconFileSmall.c_str(), 48, DISPLAY_HEIGHT - 48, false, true, false);
+  //   break;
+  // case PageContent::WEATHER:
+  //   drawBitmapFromSpiffs_Buffered(iconFileSmall.c_str(), 48, DISPLAY_HEIGHT - 48, false, true, false);
+  //   drawBitmapFromSpiffs_Buffered(iconFileBig.c_str(), 88, 140, false, true, false);
+  //   break;
+  // }
 }
 
+// arduino 初始化
 void setup()
 {
 
   Serial.begin(115200);
   Serial.println();
-  Serial.println("setup");
+  Serial.println("   _____             _ \n" + "  / ____|           | |\n" + " | (___   ___  _   _| |\n" +
+                 "  \___ \ / _ \| | | | |\n" + "  ____) | (_) | |_| | |\n" + " |_____/ \___/ \__,_|_|\n");
+  Serial.println("----A gift for lan");
+  Serial.println("Soul setup:");
 
+  // 定时唤醒
   esp_sleep_enable_timer_wakeup(TIME_TO_SLEEP * uS_TO_S_FACTOR);
   Serial.println("Setup ESP32 to sleep for every " + String(TIME_TO_SLEEP) + " Seconds");
 
-  //Print the wakeup reason for ESP32
+  // 输出唤醒原因
   print_wakeup_reason();
 
+  // SPI
   SPI.end();
   SPI.begin(13, 12, 14, 15);
 
@@ -868,6 +925,7 @@ void setup()
   DISPLAY_WIDTH = display.width();
   DISPLAY_HEIGHT = display.height();
 
+  // 字体 display 初始化
   u8g2Fonts.begin(display);                  // connect u8g2 procedures to Adafruit GFX
   u8g2Fonts.setFontMode(1);                  // use u8g2 transparent mode (this is default)
   u8g2Fonts.setFontDirection(0);             // left to right (this is default)
@@ -888,6 +946,7 @@ void setup()
 
   setupDateTime();
 
+  // 内容展示
   ++LASTPAGE;
   if (LASTPAGE > PageContent::WEATHER)
     LASTPAGE = PageContent::CALENDAR;
@@ -895,7 +954,7 @@ void setup()
   ShowPage((PageContent)LASTPAGE);
 
   Serial.println("-------  SETUP FINISHED  -----------");
-  Serial.println("睡吧。。。睡吧。。。zzzzzZZZZZZZ~~ ~~ ~~");
+  Serial.println("zzzzzZZZZZZZ~~ ~~ ~~");
   Serial.flush();
 
   /**
