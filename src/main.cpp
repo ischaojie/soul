@@ -60,7 +60,6 @@
 // base class GxEPD2_GFX can be used to pass references or pointers to the display instance as parameter, uses ~1.2k more code
 // enable or disable GxEPD2_GFX base class
 #define ENABLE_GxEPD2_GFX 0
-
 #include <GxEPD2_BW.h>
 #include <GxEPD2_3C.h>
 #include <GxEPD2_7C.h>
@@ -307,7 +306,6 @@ GxEPD2_BW<GxEPD2_583_T8, GxEPD2_583_T8::HEIGHT> display(GxEPD2_583_T8(/*CS=5*/ 1
 #include "u8g2_mfyuanhei_16_gb2312.h"
 
 U8G2_FOR_ADAFRUIT_GFX u8g2Fonts;
-U8G2 u8g2;
 #include "toxicsoul.h"
 #include "ceep_english_word.h"
 #include <ESPDateTime.h>
@@ -677,22 +675,23 @@ enum PageContent : u8_t
 void ShowHeaderLine()
 {
   // draw a line
-  u8g2.drawLine(28, 28, DISPLAY_WIDTH - 28, 28);
+  display.drawLine(28, 28, DISPLAY_WIDTH - 28, 28, 0);
 }
 
 // 头部日期和天气
 void ShowWeatherAndDate()
 {
   // 日期
-  u8g2Fonts.setFont(u8g2_mfyuanhei_18_gb2312);
-  u8g2Fonts.drawUTF8(28, 36, DateTime.format(DateFormatter::DATE_ONLY).c_str());
+  u8g2Fonts.setFont(u8g2_mfyuehei_18_gb2312);
+  time_t t = DateTime.now();
+  u8g2Fonts.drawUTF8(28, 34+28, DateFormatter::format("%m.%d", t).c_str());
 
   // 星期
   u8g2Fonts.setFont(u8g2_mfyuehei_12_gb2312);
-  u8g2Fonts.drawUTF8(102, 43, WEEKDAY_CN[DateTime.getParts().getWeekDay()]);
+  u8g2Fonts.drawUTF8(102, 43+28+4, WEEKDAY_CN[DateTime.getParts().getWeekDay()]);
 
   // 竖线
-  u8g2.drawLine(287, 34, 287, 64);
+  display.drawLine(287, 34, 287, 64, 0);
   // 天气
   String weather = cw.text;
   weather.concat(" ");
@@ -700,18 +699,20 @@ void ShowWeatherAndDate()
   weather.concat("°C");
   u8g2Fonts.setFont(u8g2_mfyuehei_18_gb2312);
   int16_t weatherWidth = u8g2Fonts.getUTF8Width(weather.c_str());
-  u8g2Fonts.drawUTF8(DISPLAY_WIDTH - weatherWidth - 28, 36, weather.c_str());
+  u8g2Fonts.drawUTF8(DISPLAY_WIDTH - weatherWidth - 28, 36+28, weather.c_str());
 
   // 城市
   u8g2Fonts.setFont(u8g2_mfyuehei_18_gb2312);
   int16_t cityNameWidth = u8g2Fonts.getUTF8Width(gi.name.c_str());
-  u8g2Fonts.drawUTF8((DISPLAY_WIDTH - cityNameWidth - weatherWidth - 28), 36, gi.name.c_str());
+  u8g2Fonts.drawUTF8((DISPLAY_WIDTH - cityNameWidth - weatherWidth - 28), 36+28, gi.name.c_str());
 }
 
 // 外边框
 void ShowBorder()
 {
-  u8g2.drawFrame(28, 70, DISPLAY_WIDTH - 28 * 2, 548);
+  display.fillRect(28, 70, DISPLAY_WIDTH - 28 * 2, 548, 0);
+  display.fillRect(28+2, 70+2, DISPLAY_WIDTH - 28 * 2-2, 548-2, 1);
+
 }
 // 判断是不是闰年
 bool isLeap(int year)
@@ -721,17 +722,16 @@ bool isLeap(int year)
   //(2) 被400整除
 }
 
-// 当前时间(几号) 和剩余天数
+// 当前时间(几号)
 void ShowCurrentMonthDay()
 {
   int monthDay = DateTime.getParts().getMonthDay();
   String dateInCenter = String(monthDay);
-  int m = DateTime.getParts().getMonth();
 
   // 每月的几号
   u8g2Fonts.setFont(u8g2_mfxinran_92_number);
   int16_t dateWidth = u8g2Fonts.getUTF8Width(dateInCenter.c_str());
-  u8g2Fonts.drawUTF8((DISPLAY_WIDTH - dateWidth) / 2, 138, dateInCenter.c_str());
+  u8g2Fonts.drawUTF8((DISPLAY_WIDTH - dateWidth) / 2, DISPLAY_HEIGHT / 4, dateInCenter.c_str());
   // 月份
   // u8g2Fonts.setFont(u8g2_mfyuehei_14_gb2312);
   // int16_t monthWidth = u8g2Fonts.getUTF8Width(MONTH_CN[m]);
@@ -745,7 +745,7 @@ void ShowLeftoverDay()
   int m = DateTime.getParts().getMonth();
 
   u8g2Fonts.setFont(u8g2_mfyuehei_12_gb2312);
-  int leftoverDay;
+  int leftoverDay = 0;
   int currentYear = DateTime.getParts().getYear();
   if (m == 1 || m == 3 || m == 5 || m == 7 || m == 8 || m == 10 || m == 12)
   {
@@ -766,8 +766,10 @@ void ShowLeftoverDay()
       leftoverDay = 28 - monthDay;
     }
   }
+  Serial.printf("leftover: %sdays\n", String(leftoverDay));
   String leftover = "这个月剩余 ";
-  leftover.concat(String(leftoverDay) + " 天");
+  leftover.concat(String(leftoverDay));
+  leftover.concat(" 天");
   int16_t leftoverWidth = u8g2Fonts.getUTF8Width(leftover.c_str());
   u8g2Fonts.drawUTF8((DISPLAY_WIDTH - leftoverWidth) / 2, 285, leftover.c_str());
 }
@@ -785,16 +787,18 @@ void ShowRandomEnglishWord()
 
 // 横线
 void ShowHLine() {
-    u8g2.drawLine(58, 426, DISPLAY_WIDTH - 28*2, 426);
+    display.drawLine(58, 426, DISPLAY_WIDTH - 28*2, 426, 0);
+}
+void ShowHLine2() {
+    display.drawLine(58, 590, DISPLAY_WIDTH - 28*2, 426, 0);
 }
 // todo: 考研心理学知识点展示
 void ShowPsychology() {
+  u8g2Fonts.setFont(u8g2_mfyuehei_12_gb2312);
+  string psy = "人格：构成一个人思想、情感及行为的特有模式，这个独特模式包\n含了一个人区别于其他人的稳定而同一的心理品质。它既包括人遵\n从社会文化习俗要求做出的外在言行，也指人不愿展露的真实自我。";
+  DrawMultiLineString(psy, 58, 436, 300, 36);
+}
 
-}
-// 横线
-void ShowHLine() {
-  u8g2.drawLine(58, 426, DISPLAY_WIDTH - 28*2, 426);
-}
 // 心理学分类
 void ShowPsychologyType()
 {
@@ -809,6 +813,12 @@ void ShowLogo()
   String pt = "Soul";
   int16_t ptWidth = u8g2Fonts.getUTF8Width(pt.c_str());
   u8g2Fonts.drawUTF8(DISPLAY_WIDTH - ptWidth - 56, 594, pt.c_str());
+
+  u8g2Fonts.setFont(u8g2_mfyuehei_12_gb2312);
+  String gift = "a gift for lan";
+  u8g2Fonts.drawUTF8(DISPLAY_WIDTH - ptWidth - 56, 604, gift.c_str());
+
+
 }
 // 最终展示界面
 void ShowPage(PageContent pageContent)
@@ -823,9 +833,6 @@ void ShowPage(PageContent pageContent)
   display.setFullWindow();
   display.clearScreen(GxEPD_WHITE);
   display.setRotation(3);
-
-  u8g2.setFontMode(1);  /* activate transparent font mode */
-  u8g2.setDrawColor(1); /* color 1 for the box */
 
   u8g2Fonts.setFontMode(1);                  // use u8g2 transparent mode (this is default)
   u8g2Fonts.setFontDirection(0);             // left to right (this is default)
@@ -850,11 +857,9 @@ void ShowPage(PageContent pageContent)
      * @brief 头部都用一样的吧
      * 
      */
+    ShowBorder();
     ShowHeaderLine();
     ShowWeatherAndDate();
-
-    ShowBorder();
-
     // 几号
     ShowCurrentMonthDay();
     // 剩余几天
@@ -865,6 +870,7 @@ void ShowPage(PageContent pageContent)
     ShowHLine();
     // 心理学内容
     ShowPsychology();
+    ShowHLine2();
     ShowHLine();
     // 那本书的
     ShowPsychologyType();
@@ -895,8 +901,15 @@ void setup()
 
   Serial.begin(115200);
   Serial.println();
-  Serial.println("   _____             _ \n" + "  / ____|           | |\n" + " | (___   ___  _   _| |\n" +
-                 "  \___ \ / _ \| | | | |\n" + "  ____) | (_) | |_| | |\n" + " |_____/ \___/ \__,_|_|\n");
+  String logo;
+  logo.concat("   _____             _ \n");
+  logo.concat("  / ____|           | |\n");
+  logo.concat(" | (___   ___  _   _| |\n");
+  logo.concat("  \\___ \\ / _ \\| | | | |\n");
+  logo.concat("  ____) | (_) | |_| | |\n");
+  logo.concat(" |_____/ \\___/ \\__,_|_|\n");
+
+  Serial.println(logo);
   Serial.println("----A gift for lan");
   Serial.println("Soul setup:");
 

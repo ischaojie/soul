@@ -117,6 +117,9 @@ vector<GeoInfo> QWeather::GetGeoInfoList(String location, String adm, String ran
 
 GeoInfo QWeather::GetGeoInfo(String location, String adm, String range)
 {
+    if (location == ""){
+        location = "Beijing";
+    }
     return GetGeoInfoList(location, adm, range, 1)[0];
 }
 

@@ -16,4 +16,4 @@ Soul 是一个电子日历产品，灵感来源于单向历（参考 UI 设计�
 waiting......
 
 ### WHO IS "Lan"
-My Girlfriend！
+My Girlfriend！Of course!
