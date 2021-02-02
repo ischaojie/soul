@@ -688,7 +688,7 @@ void ShowWeatherAndDate()
 
   // 星期
   u8g2Fonts.setFont(u8g2_mfyuehei_12_gb2312);
-  u8g2Fonts.drawUTF8(102, 43+28+4, WEEKDAY_CN[DateTime.getParts().getWeekDay()]);
+  u8g2Fonts.drawUTF8(102, 34+28+2, WEEKDAY_CN[DateTime.getParts().getWeekDay()]);
 
   // 竖线
   display.drawLine(287, 34, 287, 64, 0);
@@ -711,7 +711,7 @@ void ShowWeatherAndDate()
 void ShowBorder()
 {
   display.fillRect(28, 70, DISPLAY_WIDTH - 28 * 2, 548, 0);
-  display.fillRect(28+2, 70+2, DISPLAY_WIDTH - 28 * 2-2, 548-2, 1);
+  display.fillRect(28+2, 70+2, DISPLAY_WIDTH - 28 * 2-4, 548-4, 1);
 
 }
 // 判断是不是闰年
@@ -731,7 +731,7 @@ void ShowCurrentMonthDay()
   // 每月的几号
   u8g2Fonts.setFont(u8g2_mfxinran_92_number);
   int16_t dateWidth = u8g2Fonts.getUTF8Width(dateInCenter.c_str());
-  u8g2Fonts.drawUTF8((DISPLAY_WIDTH - dateWidth) / 2, DISPLAY_HEIGHT / 4, dateInCenter.c_str());
+  u8g2Fonts.drawUTF8((DISPLAY_WIDTH - dateWidth) / 2, DISPLAY_HEIGHT / 3+42, dateInCenter.c_str());
   // 月份
   // u8g2Fonts.setFont(u8g2_mfyuehei_14_gb2312);
   // int16_t monthWidth = u8g2Fonts.getUTF8Width(MONTH_CN[m]);
@@ -742,7 +742,7 @@ void ShowCurrentMonthDay()
 void ShowLeftoverDay()
 {
   int monthDay = DateTime.getParts().getMonthDay();
-  int m = DateTime.getParts().getMonth();
+  int m = DateTime.getParts().getMonth()+1;
 
   u8g2Fonts.setFont(u8g2_mfyuehei_12_gb2312);
   int leftoverDay = 0;
@@ -766,12 +766,12 @@ void ShowLeftoverDay()
       leftoverDay = 28 - monthDay;
     }
   }
-  Serial.printf("leftover: %sdays\n", String(leftoverDay));
+  Serial.printf("year:%s, month: %s, days: %s, leftover: %sdays\n", String(currentYear), String(m),String(monthDay),String(leftoverDay));
   String leftover = "这个月剩余 ";
   leftover.concat(String(leftoverDay));
   leftover.concat(" 天");
   int16_t leftoverWidth = u8g2Fonts.getUTF8Width(leftover.c_str());
-  u8g2Fonts.drawUTF8((DISPLAY_WIDTH - leftoverWidth) / 2, 285, leftover.c_str());
+  u8g2Fonts.drawUTF8((DISPLAY_WIDTH - leftoverWidth) / 2, DISPLAY_HEIGHT / 3+42+28, leftover.c_str());
 }
 
 // 随机考研英语单词展示
@@ -780,9 +780,10 @@ void ShowRandomEnglishWord()
   u16_t r = random(EnglishWordCount);
   const char *word = EnglishWord[r];
   Serial.printf("english word pick %u: %s\n", r, word);
-  u8g2Fonts.setFont(u8g2_mfyuehei_18_gb2312);
+  u8g2Fonts.setFont(u8g2_mfyuanhei_16_gb2312);
   // todo: maybe just need one line
-  DrawMultiLineString(string(word), 113, 332, 300, 36);
+ int16_t wordWidth = u8g2Fonts.getUTF8Width(string(word).c_str());
+  DrawMultiLineString(string(word), (DISPLAY_WIDTH-wordWidth) / 2, 332+42, DISPLAY_WIDTH-28*2, 36);
 }
 
 // 横线
@@ -790,13 +791,15 @@ void ShowHLine() {
     display.drawLine(58, 426, DISPLAY_WIDTH - 28*2, 426, 0);
 }
 void ShowHLine2() {
-    display.drawLine(58, 590, DISPLAY_WIDTH - 28*2, 426, 0);
+    display.drawLine(58, 590, DISPLAY_WIDTH - 28*2, 590, 0);
 }
-// todo: 考研心理学知识点展示
+// 考研心理学知识点展示
 void ShowPsychology() {
   u8g2Fonts.setFont(u8g2_mfyuehei_12_gb2312);
   string psy = "人格：构成一个人思想、情感及行为的特有模式，这个独特模式包\n含了一个人区别于其他人的稳定而同一的心理品质。它既包括人遵\n从社会文化习俗要求做出的外在言行，也指人不愿展露的真实自我。";
-  DrawMultiLineString(psy, 58, 436, 300, 36);
+ int16_t psyWidth = u8g2Fonts.getUTF8Width(psy.c_str());
+//  todo: 居中显示
+  DrawMultiLineString(psy, 60+12, 436, 300, 24);
 }
 
 // 心理学分类
@@ -804,7 +807,7 @@ void ShowPsychologyType()
 {
   u8g2Fonts.setFont(u8g2_mfyuehei_12_gb2312);
   String pt = "《普通心理学》";
-  u8g2Fonts.drawUTF8(58, 596, pt.c_str());
+  u8g2Fonts.drawUTF8(56, 596+12, pt.c_str());
 }
 // logo
 void ShowLogo()
@@ -812,11 +815,12 @@ void ShowLogo()
   u8g2Fonts.setFont(u8g2_mfyuehei_14_gb2312);
   String pt = "Soul";
   int16_t ptWidth = u8g2Fonts.getUTF8Width(pt.c_str());
-  u8g2Fonts.drawUTF8(DISPLAY_WIDTH - ptWidth - 56, 594, pt.c_str());
+  u8g2Fonts.drawUTF8(DISPLAY_WIDTH - ptWidth - 56, 590+12, pt.c_str());
 
   u8g2Fonts.setFont(u8g2_mfyuehei_12_gb2312);
   String gift = "a gift for lan";
-  u8g2Fonts.drawUTF8(DISPLAY_WIDTH - ptWidth - 56, 604, gift.c_str());
+  int16_t giftWidth = u8g2Fonts.getUTF8Width(gift.c_str());
+  u8g2Fonts.drawUTF8(DISPLAY_WIDTH - giftWidth - 56, 604+12, gift.c_str());
 
 
 }

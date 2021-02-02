@@ -174,7 +174,7 @@ const char* EnglishWord[] = {
 "underestimate	[ˌʌndərˈestɪmeɪt]	 低估",
 "reassure	[ˌri:əˈʃʊə(r)]	 v.使安心，使放心；使消除疑虑",
 "recede	[rɪˈsi:d]	 v.退去；缩进；收回，撤回 [反",
-"recipient	[rɪˈsɪpiənt]	 n.a person who receives sth  收到者",
+"recipient	[rɪˈsɪpiənt]	 n.收到者",
 "reckless	[ˈrekləs]	 a.不注意的,大意的,卤莽的,不顾后果的",
 "rectangle	[ˈrektæŋgl]	 n.[数]矩形, 长方形",
 "recur	[rɪˈkɜ:(r)]	 v.(尤指不好的事)一再发生；重现",
