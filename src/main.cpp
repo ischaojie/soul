@@ -297,8 +297,9 @@ GxEPD2_BW<GxEPD2_583_T8, GxEPD2_583_T8::HEIGHT> display(GxEPD2_583_T8(/*CS=5*/ 1
 #define FileClass fs::File
 #define EPD_CS SS
 
-// TODO: 清理或者缩小不必要的字体
-#include "u8g2_font_dqhtj.h"
+// 字体
+#include "u8g2_font_pingfang.h"
+#include "u8g2_mfxinran_92_number.h"
 
 U8G2_FOR_ADAFRUIT_GFX u8g2Fonts;
 #include "toxicsoul.h"
@@ -649,7 +650,7 @@ void ShowWiFiSmartConfig()
   const uint16_t x = (DISPLAY_WIDTH - SMARTCONFIG_QR_CODE_WIDTH) / 2;
   const uint16_t y = (DISPLAY_HEIGHT - SMARTCONFIG_QR_CODE_HEIGHT) / 2;
 
-  u8g2Fonts.setFont(u8g2_font_dqhtjw3_18pt);
+  u8g2Fonts.setFont(u8g2_font_pingfang_regular_18pt);
   uint16_t tipsY = y + SMARTCONFIG_QR_CODE_HEIGHT + 40;
 
   display.firstPage();
@@ -677,13 +678,13 @@ void ShowHeaderLine()
 void ShowWeatherAndDate()
 {
   // 日期
-  u8g2Fonts.setFont(u8g2_font_dqhtjw6_20pt);
+  u8g2Fonts.setFont(u8g2_font_pingfang_heavy_20pt);
   time_t t = DateTime.now();
   u8g2Fonts.drawUTF8(28, 34+28, DateFormatter::format("%m.%d", t).c_str());
 
   // 星期
-  u8g2Fonts.setFont(u8g2_font_dqhtjw3_12pt);
-  u8g2Fonts.drawUTF8(102, 34+28+2, WEEKDAY_CN[DateTime.getParts().getWeekDay()]);
+  u8g2Fonts.setFont(u8g2_font_pingfang_regular_12pt);
+  u8g2Fonts.drawUTF8(102, 34+28+4, WEEKDAY_CN[DateTime.getParts().getWeekDay()]);
 
   // 竖线
   display.drawLine(287, 34, 287, 64, 0);
@@ -692,12 +693,12 @@ void ShowWeatherAndDate()
   weather.concat(" ");
   weather.concat(cw.feelsLike);
   weather.concat("°C");
-  u8g2Fonts.setFont(u8g2_font_dqhtjw3_18pt);
+  u8g2Fonts.setFont(u8g2_font_pingfang_regular_18pt);
   int16_t weatherWidth = u8g2Fonts.getUTF8Width(weather.c_str());
-  u8g2Fonts.drawUTF8(DISPLAY_WIDTH - weatherWidth - 28, 36+28, weather.c_str());
+  u8g2Fonts.drawUTF8(DISPLAY_WIDTH - weatherWidth - 28, 36+24, weather.c_str());
 
   // 城市
-  u8g2Fonts.setFont(u8g2_font_dqhtjw3_18pt);
+  u8g2Fonts.setFont(u8g2_font_pingfang_regular_18pt);
   int16_t cityNameWidth = u8g2Fonts.getUTF8Width(gi.name.c_str());
   u8g2Fonts.drawUTF8((DISPLAY_WIDTH - cityNameWidth - weatherWidth - 28), 36+28, gi.name.c_str());
 }
@@ -724,7 +725,7 @@ void ShowCurrentMonthDay()
   String dateInCenter = String(monthDay);
 
   // 每月的几号
-  u8g2Fonts.setFont(u8g2_font_dqhtjw6_90pt);
+  u8g2Fonts.setFont(u8g2_mfxinran_92_number);
   int16_t dateWidth = u8g2Fonts.getUTF8Width(dateInCenter.c_str());
   u8g2Fonts.drawUTF8((DISPLAY_WIDTH - dateWidth) / 2, DISPLAY_HEIGHT / 3+42, dateInCenter.c_str());
   // 月份
@@ -739,7 +740,7 @@ void ShowLeftoverDay()
   int monthDay = DateTime.getParts().getMonthDay();
   int m = DateTime.getParts().getMonth()+1;
 
-  u8g2Fonts.setFont(u8g2_font_dqhtjw3_12pt);
+  u8g2Fonts.setFont(u8g2_font_pingfang_regular_12pt);
   int leftoverDay = 0;
   int currentYear = DateTime.getParts().getYear();
   if (m == 1 || m == 3 || m == 5 || m == 7 || m == 8 || m == 10 || m == 12)
@@ -775,7 +776,7 @@ void ShowRandomEnglishWord()
   u16_t r = random(EnglishWordCount);
   const char *word = EnglishWord[r];
   Serial.printf("english word pick %u: %s\n", r, word);
-  u8g2Fonts.setFont(u8g2_font_dqhtjw3_18pt);
+  u8g2Fonts.setFont(u8g2_font_pingfang_regular_18pt);
   // todo: maybe just need one line
  int16_t wordWidth = u8g2Fonts.getUTF8Width(string(word).c_str());
   DrawMultiLineString(string(word), (DISPLAY_WIDTH-wordWidth) / 2, 332+42, DISPLAY_WIDTH-28*2, 36);
@@ -790,29 +791,29 @@ void ShowHLine2() {
 }
 // 考研心理学知识点展示
 void ShowPsychology() {
-  u8g2Fonts.setFont(u8g2_font_dqhtjw3_12pt);
+  u8g2Fonts.setFont(u8g2_font_pingfang_regular_12pt);
   string psy = "人格：构成一个人思想、情感及行为的特有模式，这个独特模式包\n含了一个人区别于其他人的稳定而同一的心理品质。它既包括人遵\n从社会文化习俗要求做出的外在言行，也指人不愿展露的真实自我。";
  int16_t psyWidth = u8g2Fonts.getUTF8Width(psy.c_str());
 //  todo: 居中显示
-  DrawMultiLineString(psy, 60+12, 436, 300, 24);
+  DrawMultiLineString(psy, 60+12, 436+4, 300, 24);
 }
 
 // 心理学分类
 void ShowPsychologyType()
 {
-  u8g2Fonts.setFont(u8g2_font_dqhtjw3_12pt);
+  u8g2Fonts.setFont(u8g2_font_pingfang_regular_12pt);
   String pt = "《普通心理学》";
   u8g2Fonts.drawUTF8(56, 596+12, pt.c_str());
 }
 // logo
 void ShowLogo()
 {
-  u8g2Fonts.setFont(u8g2_font_dqhtjw6_14pt);
+  u8g2Fonts.setFont(u8g2_font_pingfang_heavy_14pt);
   String pt = "Soul";
   int16_t ptWidth = u8g2Fonts.getUTF8Width(pt.c_str());
   u8g2Fonts.drawUTF8(DISPLAY_WIDTH - ptWidth - 56, 590+12, pt.c_str());
 
-  u8g2Fonts.setFont(u8g2_font_dqhtjw3_9pt);
+  u8g2Fonts.setFont(u8g2_font_pingfang_regular_9pt);
   String gift = "a gift for lan";
   int16_t giftWidth = u8g2Fonts.getUTF8Width(gift.c_str());
   u8g2Fonts.drawUTF8(DISPLAY_WIDTH - giftWidth - 56, 604+12, gift.c_str());
