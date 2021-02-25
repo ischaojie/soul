@@ -3,85 +3,88 @@
 
 /**
  * @brief 和风天气城市信息搜索API基地址
- * 
+ *
  */
 const String QWEATHER_GEOAPI_BASE_URL = "https://geoapi.qweather.com";
 
 /**
  * @brief 和风天气预报和实况信息查询商业版基地址
- * 
+ *
  */
-const String QWEATHER_WEATHERAPI_BASE_URL_COMMERCIAL = "https://api.qweather.com/v7/weather";
+const String QWEATHER_WEATHERAPI_BASE_URL_COMMERCIAL =
+    "https://api.qweather.com/v7/weather";
 /**
  * @brief 和风天气预报和实况信息查询开发版基地址
- * 
+ *
  */
-const String QWEATHER_WEATHERAPI_BASE_URL_DEV = "https://devapi.qweather.com/v7/weather";
-
+const String QWEATHER_WEATHERAPI_BASE_URL_DEV =
+    "https://devapi.qweather.com/v7/weather";
 
 /**
  * @brief 和风天气预报和实况信息查询商业版基地址
- * 
+ *
  */
-const String QWEATHER_AIRAPI_BASE_URL_COMMERCIAL = "https://api.qweather.com/v7/air";
+const String QWEATHER_AIRAPI_BASE_URL_COMMERCIAL =
+    "https://api.qweather.com/v7/air";
 /**
  * @brief 和风天气预报和实况信息查询开发版基地址
- * 
+ *
  */
-const String QWEATHER_AIRAPI_BASE_URL_DEV = "https://devapi.qweather.com/v7/air";
+const String QWEATHER_AIRAPI_BASE_URL_DEV =
+    "https://devapi.qweather.com/v7/air";
 
-
-void QWeather::Config(String key, String l, UnitType unitType, APIVersion apiVersion)
-{
+void QWeather::Config(String key,
+                      String l,
+                      UnitType unitType,
+                      APIVersion apiVersion) {
     SetUserKey(key);
     SetLanguage(l);
     SetUnitType(unitType);
     SetAPIVersion(apiVersion);
 }
-void QWeather::SetAPIVersion(APIVersion apiVersion)
-{
+void QWeather::SetAPIVersion(APIVersion apiVersion) {
     _apiVersion = apiVersion;
 }
 
-void QWeather::SetUserKey(String key)
-{
+void QWeather::SetUserKey(String key) {
     _key = key;
 }
 
-void QWeather::SetLanguage(String l)
-{
+void QWeather::SetLanguage(String l) {
     _lang = l;
 }
 
-void QWeather::SetUnitType(UnitType unitType)
-{
+void QWeather::SetUnitType(UnitType unitType) {
     _unitType = unitType;
 }
 
-vector<GeoInfo> QWeather::GetGeoInfoList(String location, String adm, String range, uint8_t maxNumber)
-{
+vector<GeoInfo> QWeather::GetGeoInfoList(String location,
+                                         String adm,
+                                         String range,
+                                         uint8_t maxNumber) {
     Serial.println("GetGeoInfoList from QWeather");
     vector<GeoInfo> result;
     WiFiClientSecure client;
     client.setInsecure();
     HTTPClient httpClient;
 
-    String encodedURL = QWEATHER_GEOAPI_BASE_URL + "/v2/city/lookup?key=" + _key + "&gzip=n&location=" + urlencode(location) + "&adm=" + urlencode(adm) + "&range=" + range + "&number=" + String(maxNumber) + "&lang=" + _lang;
+    String encodedURL =
+        QWEATHER_GEOAPI_BASE_URL + "/v2/city/lookup?key=" + _key +
+        "&gzip=n&location=" + urlencode(location) + "&adm=" + urlencode(adm) +
+        "&range=" + range + "&number=" + String(maxNumber) + "&lang=" + _lang;
     Serial.println(encodedURL);
 
-    if (httpClient.begin(encodedURL))
-    {
+    if (httpClient.begin(encodedURL)) {
         u8_t httpCode = httpClient.GET();
-        if (httpCode == HTTP_CODE_OK || httpCode == HTTP_CODE_MOVED_PERMANENTLY)
-        {
+        if (httpCode == HTTP_CODE_OK ||
+            httpCode == HTTP_CODE_MOVED_PERMANENTLY) {
             String payload = httpClient.getString();
             Serial.println(payload);
             DynamicJsonDocument doc(8192);
             deserializeJson(doc, payload);
 
             JsonArray locationArray = doc["location"];
-            for (JsonVariant v : locationArray)
-            {
+            for (JsonVariant v : locationArray) {
                 JsonObject loc = v.as<JsonObject>();
                 GeoInfo gi;
                 gi.name = loc["name"].as<String>();
@@ -99,14 +102,13 @@ vector<GeoInfo> QWeather::GetGeoInfoList(String location, String adm, String ran
                 gi.fxLink = loc["fxLink"].as<String>();
                 result.push_back(gi);
             }
+        } else {
+            Serial.printf(
+                "Connect to weather api server failed, the http status code "
+                "is:%u\n",
+                httpCode);
         }
-        else
-        {
-            Serial.printf("Connect to weather api server failed, the http status code is:%u\n", httpCode);
-        }
-    }
-    else
-    {
+    } else {
         Serial.println("Failed to connect to weather api server");
     }
 
@@ -115,56 +117,58 @@ vector<GeoInfo> QWeather::GetGeoInfoList(String location, String adm, String ran
     return result;
 }
 
-GeoInfo QWeather::GetGeoInfo(String location, String adm, String range)
-{
-    if (location == ""){
+GeoInfo QWeather::GetGeoInfo(String location, String adm, String range) {
+    if (location == "") {
         location = "Beijing";
     }
     return GetGeoInfoList(location, adm, range, 1)[0];
 }
 
-CurrentWeather QWeather::GetCurrentWeather(String location)
-{
+CurrentWeather QWeather::GetCurrentWeather(String location) {
     WiFiClientSecure client;
     client.setInsecure();
     HTTPClient httpClient;
     CurrentWeather result;
 
-    String requestUrl = ((_apiVersion == APIVersion::DEV) ? QWEATHER_WEATHERAPI_BASE_URL_DEV : QWEATHER_WEATHERAPI_BASE_URL_COMMERCIAL) + "/now?gzip=n" + "&location=" + location + "&key=" + _key + "&lang=" + _lang + "&unit=" + ((_unitType == UnitType::METRIC) ? "m" : "i");
+    String requestUrl = ((_apiVersion == APIVersion::DEV)
+                             ? QWEATHER_WEATHERAPI_BASE_URL_DEV
+                             : QWEATHER_WEATHERAPI_BASE_URL_COMMERCIAL) +
+                        "/now?gzip=n" + "&location=" + location +
+                        "&key=" + _key + "&lang=" + _lang + "&unit=" +
+                        ((_unitType == UnitType::METRIC) ? "m" : "i");
     Serial.println(requestUrl);
-    if (httpClient.begin(requestUrl))
-    {
+    if (httpClient.begin(requestUrl)) {
         u8_t httpCode = httpClient.GET();
-        if (httpCode == HTTP_CODE_OK || httpCode == HTTP_CODE_MOVED_PERMANENTLY)
-        {
+        if (httpCode == HTTP_CODE_OK ||
+            httpCode == HTTP_CODE_MOVED_PERMANENTLY) {
             String payload = httpClient.getString();
             Serial.println(payload);
             DynamicJsonDocument doc(1024);
             deserializeJson(doc, payload);
             JsonObject now = doc["now"];
-            result.obsTime = now["obsTime"].as<String>();     // "2020-12-24T14:59+08:00"
-            result.temp = now["temp"].as<String>();           // "4"
-            result.feelsLike = now["feelsLike"].as<String>(); // "-1"
-            result.icon = now["icon"].as<String>();           // "100"
-            result.text = now["text"].as<String>();           // "晴"
-            result.wind360 = now["wind360"].as<String>();     // "225"
-            result.windDir = now["windDir"].as<String>();     // "西南风"
-            result.windScale = now["windScale"].as<String>(); // "3"
-            result.windSpeed = now["windSpeed"].as<String>(); // "13"
-            result.humidity = now["humidity"].as<String>();   // "16"
-            result.precip = now["precip"].as<String>();       // "0.0"
-            result.pressure = now["pressure"].as<String>();   // "1019"
-            result.vis = now["vis"].as<String>();             // "30"
-            result.cloud = now["cloud"].as<String>();         // "0"
-            result.dew = now["dew"].as<String>();             // "-22"
+            result.obsTime =
+                now["obsTime"].as<String>();         // "2020-12-24T14:59+08:00"
+            result.temp = now["temp"].as<String>();  // "4"
+            result.feelsLike = now["feelsLike"].as<String>();  // "-1"
+            result.icon = now["icon"].as<String>();            // "100"
+            result.text = now["text"].as<String>();            // "晴"
+            result.wind360 = now["wind360"].as<String>();      // "225"
+            result.windDir = now["windDir"].as<String>();      // "西南风"
+            result.windScale = now["windScale"].as<String>();  // "3"
+            result.windSpeed = now["windSpeed"].as<String>();  // "13"
+            result.humidity = now["humidity"].as<String>();    // "16"
+            result.precip = now["precip"].as<String>();        // "0.0"
+            result.pressure = now["pressure"].as<String>();    // "1019"
+            result.vis = now["vis"].as<String>();              // "30"
+            result.cloud = now["cloud"].as<String>();          // "0"
+            result.dew = now["dew"].as<String>();              // "-22"
+        } else {
+            Serial.printf(
+                "Connect to weather api server failed, the http status code "
+                "is:%u\n",
+                httpCode);
         }
-        else
-        {
-            Serial.printf("Connect to weather api server failed, the http status code is:%u\n", httpCode);
-        }
-    }
-    else
-    {
+    } else {
         Serial.println("Get current weather failed");
     }
     httpClient.end();
@@ -172,26 +176,31 @@ CurrentWeather QWeather::GetCurrentWeather(String location)
     return result;
 }
 
-vector<DailyWeather> QWeather::GetDailyWeather(String location, DailyPredictionType dailyPredictionType)
-{
+vector<DailyWeather> QWeather::GetDailyWeather(
+    String location,
+    DailyPredictionType dailyPredictionType) {
     WiFiClientSecure client;
     client.setInsecure();
     HTTPClient httpClient;
     vector<DailyWeather> result;
-    String requestUrl = ((_apiVersion == APIVersion::DEV) ? QWEATHER_WEATHERAPI_BASE_URL_DEV : QWEATHER_WEATHERAPI_BASE_URL_COMMERCIAL) + "/"+ String(dailyPredictionType) +"d?gzip=n" + "&location=" + location + "&key=" + _key + "&lang=" + _lang + "&unit=" + ((_unitType == UnitType::METRIC) ? "m" : "i");
+    String requestUrl =
+        ((_apiVersion == APIVersion::DEV)
+             ? QWEATHER_WEATHERAPI_BASE_URL_DEV
+             : QWEATHER_WEATHERAPI_BASE_URL_COMMERCIAL) +
+        "/" + String(dailyPredictionType) + "d?gzip=n" +
+        "&location=" + location + "&key=" + _key + "&lang=" + _lang +
+        "&unit=" + ((_unitType == UnitType::METRIC) ? "m" : "i");
     Serial.println(requestUrl);
-    if (httpClient.begin(requestUrl))
-    {
+    if (httpClient.begin(requestUrl)) {
         u8_t httpCode = httpClient.GET();
-        if (httpCode == HTTP_CODE_OK || httpCode == HTTP_CODE_MOVED_PERMANENTLY)
-        {
+        if (httpCode == HTTP_CODE_OK ||
+            httpCode == HTTP_CODE_MOVED_PERMANENTLY) {
             String payload = httpClient.getString();
             DynamicJsonDocument doc(dailyPredictionType * 1024 + 512);
             deserializeJson(doc, payload);
 
             JsonArray dailyArray = doc["daily"];
-            for (JsonVariant v : dailyArray)
-            {
+            for (JsonVariant v : dailyArray) {
                 JsonObject daily = v.as<JsonObject>();
                 DailyWeather dw;
                 dw.fxDate = daily["fxDate"].as<String>();
@@ -222,14 +231,13 @@ vector<DailyWeather> QWeather::GetDailyWeather(String location, DailyPredictionT
                 dw.uvIndex = daily["uvIndex"].as<String>();
                 result.push_back(dw);
             }
+        } else {
+            Serial.printf(
+                "Connect to daily weather api failed, the http status code "
+                "is:%u\n",
+                httpCode);
         }
-        else
-        {
-            Serial.printf("Connect to daily weather api failed, the http status code is:%u\n", httpCode);
-        }
-    }
-    else
-    {
+    } else {
         Serial.println("Get daily weather failed");
     }
 
@@ -238,25 +246,30 @@ vector<DailyWeather> QWeather::GetDailyWeather(String location, DailyPredictionT
     return result;
 }
 
-vector<HourlyWeather> QWeather::GetHourlyWeather(String location, HourlyPredictionType hourlyPredictionType)
-{
+vector<HourlyWeather> QWeather::GetHourlyWeather(
+    String location,
+    HourlyPredictionType hourlyPredictionType) {
     WiFiClientSecure client;
     client.setInsecure();
     HTTPClient httpClient;
     vector<HourlyWeather> result;
-    String requestUrl = ((_apiVersion == APIVersion::DEV) ? QWEATHER_WEATHERAPI_BASE_URL_DEV : QWEATHER_WEATHERAPI_BASE_URL_COMMERCIAL) + "/"+ String(hourlyPredictionType) +"h?gzip=n" + "&location=" + location + "&key=" + _key + "&lang=" + _lang + "&unit=" + ((_unitType == UnitType::METRIC) ? "m" : "i");
-    if (httpClient.begin(requestUrl))
-    {
+    String requestUrl =
+        ((_apiVersion == APIVersion::DEV)
+             ? QWEATHER_WEATHERAPI_BASE_URL_DEV
+             : QWEATHER_WEATHERAPI_BASE_URL_COMMERCIAL) +
+        "/" + String(hourlyPredictionType) + "h?gzip=n" +
+        "&location=" + location + "&key=" + _key + "&lang=" + _lang +
+        "&unit=" + ((_unitType == UnitType::METRIC) ? "m" : "i");
+    if (httpClient.begin(requestUrl)) {
         u8_t httpCode = httpClient.GET();
-        if (httpCode == HTTP_CODE_OK || httpCode == HTTP_CODE_MOVED_PERMANENTLY)
-        {
+        if (httpCode == HTTP_CODE_OK ||
+            httpCode == HTTP_CODE_MOVED_PERMANENTLY) {
             String payload = httpClient.getString();
             DynamicJsonDocument doc(hourlyPredictionType * 512);
             deserializeJson(doc, payload);
 
             JsonArray hourlyArray = doc["hourly"];
-            for (JsonVariant v : hourlyArray)
-            {
+            for (JsonVariant v : hourlyArray) {
                 JsonObject hourly = v.as<JsonObject>();
                 HourlyWeather hw;
                 hw.fxTime = hourly["fxTime"].as<String>();
@@ -275,42 +288,43 @@ vector<HourlyWeather> QWeather::GetHourlyWeather(String location, HourlyPredicti
                 hw.dew = hourly["dew"].as<String>();
                 result.push_back(hw);
             }
+        } else {
+            Serial.printf(
+                "Connect to hourly weather api failed, the http status code "
+                "is:%u\n",
+                httpCode);
         }
-        else
-        {
-            Serial.printf("Connect to hourly weather api failed, the http status code is:%u\n", httpCode);
-        }
-    }
-    else
-    {
+    } else {
         Serial.println("Get hourly weather failed");
     }
 
     httpClient.end();
     client.stop();
-    return result;    
+    return result;
 }
 
-CurrentAirQuality QWeather::GetCurrentAirQuality(String location)
-{
+CurrentAirQuality QWeather::GetCurrentAirQuality(String location) {
     WiFiClientSecure client;
     client.setInsecure();
     HTTPClient httpClient;
     CurrentAirQuality result;
-    String requestUrl = ((_apiVersion == APIVersion::DEV) ? QWEATHER_AIRAPI_BASE_URL_DEV : QWEATHER_AIRAPI_BASE_URL_COMMERCIAL) + "/now?gzip=n" +  "&location=" + location + "&key=" + _key + "&lang=" + _lang;
+    String requestUrl = ((_apiVersion == APIVersion::DEV)
+                             ? QWEATHER_AIRAPI_BASE_URL_DEV
+                             : QWEATHER_AIRAPI_BASE_URL_COMMERCIAL) +
+                        "/now?gzip=n" + "&location=" + location +
+                        "&key=" + _key + "&lang=" + _lang;
     Serial.println(requestUrl);
-    if (httpClient.begin(requestUrl))
-    {
+    if (httpClient.begin(requestUrl)) {
         u8_t httpCode = httpClient.GET();
-        if (httpCode == HTTP_CODE_OK || httpCode == HTTP_CODE_MOVED_PERMANENTLY)
-        {
+        if (httpCode == HTTP_CODE_OK ||
+            httpCode == HTTP_CODE_MOVED_PERMANENTLY) {
             String payload = httpClient.getString();
             Serial.println(payload);
             DynamicJsonDocument doc(8192);
             deserializeJson(doc, payload);
 
             JsonObject now = doc["now"];
-            result.pubTime = now["pubTime"].as<String>(); 
+            result.pubTime = now["pubTime"].as<String>();
             result.aqi = now["aqi"].as<String>();
             result.level = now["level"].as<String>();
             result.category = now["category"].as<String>();
@@ -323,8 +337,7 @@ CurrentAirQuality QWeather::GetCurrentAirQuality(String location)
             result.o3 = now["o3"].as<String>();
 
             JsonArray stationsArray = doc["station"].as<JsonArray>();
-            for (JsonVariant v : stationsArray)
-            {
+            for (JsonVariant v : stationsArray) {
                 JsonObject s = v.as<JsonObject>();
                 AirStationData asd;
                 asd.pubTime = s["pubTime"].as<String>();
@@ -342,18 +355,17 @@ CurrentAirQuality QWeather::GetCurrentAirQuality(String location)
                 asd.o3 = s["o3"].as<String>();
                 result.Stations.push_back(asd);
             }
+        } else {
+            Serial.printf(
+                "Connect to air quality api failed, the http status code "
+                "is:%u\n",
+                httpCode);
         }
-        else
-        {
-            Serial.printf("Connect to air quality api failed, the http status code is:%u\n", httpCode);
-        }
-    }
-    else
-    {
+    } else {
         Serial.println("Get current air quality failed");
     }
 
     httpClient.end();
     client.stop();
-    return result;  
+    return result;
 }

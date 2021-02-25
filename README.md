@@ -9,11 +9,11 @@ Soul 是一个电子日历产品，灵感来源于单向历（参考 UI 设计�
 - [X] 天气展示
 - [X] 当月剩余天数
 - [X] 随机考研英语高频词汇
-- [ ] 随机心理学考点
+- [x] 随机心理学考点
 ### UI 效果
 ![soul_ui](soul.png)
 ### 成品效果
-waiting......
+![soul 效果](amazing.jpeg)
 
 ### WHO IS "Lan"
 My Girlfriend！Of course!
