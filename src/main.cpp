@@ -483,7 +483,7 @@ GxEPD2_BW<GxEPD2_583_T8, GxEPD2_583_T8::HEIGHT> display(
 #include <ArduinoJson.h>
 #include "MyIP.h"
 #include "QWeather.h"
-#include "psychology.h"
+#include "soulapi.h"
 #include "SmartConfigManager.h"
 #include "config.h"
 #include "esp_bt.h"
@@ -521,8 +521,16 @@ int16_t DISPLAY_WIDTH;
 int16_t DISPLAY_HEIGHT;
 u8_t pageIndex = 0;
 QWeather qwAPI;
-Psychology papi;
+
+// soul api
+Soul soulapi;
+// token
+Token token;
+
+// api data
 PsychologyDaily pd;
+WordDaily wd;
+
 CurrentWeather cw;
 CurrentAirQuality caq;
 vector<DailyWeather> dws;
@@ -1005,13 +1013,12 @@ void ShowLeftoverDay() {
 
 // 随机考研英语单词展示
 void ShowRandomEnglishWord() {
-    u16_t r = random(EnglishWordCount);
-    const char* word = EnglishWord[r];
-    Serial.printf("english word pick %u: %s\n", r, word);
+   
+    string word = wd.origin + " " + wd.pronunciation + " " + wd.translation;
     u8g2Fonts.setFont(u8g2_font_pingfang_regular_18pt);
     // todo: maybe just need one line
-    int16_t wordWidth = u8g2Fonts.getUTF8Width(string(word).c_str());
-    DrawMultiLineString(string(word), (DISPLAY_WIDTH - wordWidth) / 2, 332 + 42,
+    int16_t wordWidth = u8g2Fonts.getUTF8Width(word.c_str());
+    DrawMultiLineString(word, (DISPLAY_WIDTH - wordWidth) / 2, 332 + 42,
                         DISPLAY_WIDTH - 28 * 2, 36);
 }
 
@@ -1053,12 +1060,19 @@ void ShowLogo() {
 }
 // 最终展示界面
 void ShowPage(PageContent pageContent) {
-    // TODO: 应该判断下咋决定是否刷新。例如距离上次请求超过多少小时再请求。
+    // 应该判断下咋决定是否刷新。例如距离上次请求超过多少小时再请求。
 
     // 初始化
     cw = qwAPI.GetCurrentWeather(gi.id);
+
+    // get token
+    token = soulapi.GetToken("admin@example.com", "123456");
+    
     // 获取当天心理学知识点
-    pd = papi.GetPsychologyDaily();
+    pd = soulapi.GetPsychologyDaily(token.access_token);
+    wd = soulapi.GetWordDaily(token.access_token);
+
+
     // caq = qwAPI.GetCurrentAirQuality(gi.id);
     // dws = qwAPI.GetDailyWeather(gi.id);
 

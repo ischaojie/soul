@@ -1,5 +1,5 @@
-#ifndef _PSYCHOLOGY_H
-#define _PSYCHOLOGY_H
+#ifndef _SOULAPI_H
+#define _SOULAPI_H
 
 
 #include <Arduino.h>
@@ -20,16 +20,23 @@ struct PsychologyDaily {
     String updated_at;
 };
 
+struct WordDaily{
+    string origin;
+    string pronunciation;
+    string translation;
+};
+
 struct Token{
     String access_token;
     String token_type;
 };
 
-class Psychology{
+class Soul{
     public:
 
-        PsychologyDaily GetPsychologyDaily();
+        PsychologyDaily GetPsychologyDaily(String token);
         Token GetToken(String email, String password);
+        WordDaily GetWordDaily(String token);
 };
 
 #endif

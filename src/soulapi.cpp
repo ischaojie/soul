@@ -1,12 +1,14 @@
-#include "psychology.h"
+#include "soulapi.h"
 #include "urlencode.h"
 
 const String SOUL_API_PSYCHOLOGY_URL =
     "http://soul.shiniao.fun/api/v1/psychologies/daily";
+const String SOUL_API_WORD_URL =
+    "http://soul.shiniao.fun/api/v1/words/daily";
 
 const String SOUL_API_LOGIN_URL = "http://soul.shiniao.fun/api/v1/login";
 
-Token Psychology::GetToken(String email, String password) {
+Token Soul::GetToken(String email, String password) {
     WiFiClientSecure client;
     client.setInsecure();
     HTTPClient httpClient;
@@ -38,7 +40,7 @@ Token Psychology::GetToken(String email, String password) {
     return result;
 }
 
-PsychologyDaily Psychology::GetPsychologyDaily() {
+PsychologyDaily Soul::GetPsychologyDaily(String token) {
     WiFiClientSecure client;
     client.setInsecure();
     HTTPClient httpClient;
@@ -47,11 +49,9 @@ PsychologyDaily Psychology::GetPsychologyDaily() {
 
     Serial.println(requestUrl);
 
-    // first get token
-    Token token = GetToken("admin@example.com", "123456");
-    if (token.access_token != "") {
+    if (token != "") {
         if (httpClient.begin(requestUrl)) {
-            String auth = "Bearer " + token.access_token;
+            String auth = "Bearer " + token;
             httpClient.addHeader("Authorization", auth, false, true);
             int httpCode = httpClient.GET();
 
@@ -88,6 +88,46 @@ PsychologyDaily Psychology::GetPsychologyDaily() {
             }
         } else {
             Serial.println("Get psychology daily failed");
+        }
+    }
+
+    httpClient.end();
+    client.stop();
+    return result;
+}
+
+WordDaily Soul::GetWordDaily(String token) {
+    WiFiClientSecure client;
+    client.setInsecure();
+    HTTPClient httpClient;
+    WordDaily result;
+    String requestUrl = SOUL_API_WORD_URL;
+
+    Serial.println(requestUrl);
+
+    if (token != "") {
+        if (httpClient.begin(requestUrl)) {
+            String auth = "Bearer " + token;
+            httpClient.addHeader("Authorization", auth, false, true);
+            int httpCode = httpClient.GET();
+
+            if (httpCode == HTTP_CODE_OK ||
+                httpCode == HTTP_CODE_MOVED_PERMANENTLY) {
+                String payload = httpClient.getString();
+                Serial.println(payload);
+                DynamicJsonDocument words(1024);
+                deserializeJson(words, payload);
+                result.origin = words["origin"].as<string>();
+                result.pronunciation = words["pronunciation"].as<string>();
+                result.translation = words["translation"].as<string>();
+            } else {
+                Serial.printf(
+                    "Get word daily failed, the http status code "
+                    "is:%d\n",
+                    httpCode);
+            }
+        } else {
+            Serial.println("Get word daily failed");
         }
     }
 
