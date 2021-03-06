@@ -561,7 +561,7 @@ RTC_NOINIT_ATTR u8_t LASTPAGE = -1;
 
 #define uS_TO_S_FACTOR \
     1000000 /* Conversion factor for micro seconds to seconds */
-#define TIME_TO_SLEEP 60 * 15 /* Time ESP32 will go to sleep (in seconds) */
+#define TIME_TO_SLEEP 60 * 30 /* Time ESP32 will go to sleep (in seconds) */
 
 void print_wakeup_reason() {
     esp_sleep_wakeup_cause_t wakeup_reason;
@@ -1014,7 +1014,7 @@ void ShowLeftoverDay() {
 // 随机考研英语单词展示
 void ShowRandomEnglishWord() {
    
-    string word = wd.origin + " " + wd.pronunciation + " " + wd.translation;
+    string word = wd.origin + " " + wd.translation;
     u8g2Fonts.setFont(u8g2_font_pingfang_regular_18pt);
     // todo: maybe just need one line
     int16_t wordWidth = u8g2Fonts.getUTF8Width(word.c_str());
