@@ -531,7 +531,7 @@ Token token;
 PsychologyDaily pd;
 WordDaily wd;
 
-CurrentWeather cw;
+CurrentWeather currentWeather;
 CurrentAirQuality caq;
 vector<DailyWeather> dws;
 static const uint16_t input_buffer_pixels = 800;  // may affect performance
@@ -561,7 +561,7 @@ RTC_NOINIT_ATTR u8_t LASTPAGE = -1;
 
 #define uS_TO_S_FACTOR \
     1000000 /* Conversion factor for micro seconds to seconds */
-#define TIME_TO_SLEEP 60 * 30 /* Time ESP32 will go to sleep (in seconds) */
+#define TIME_TO_SLEEP 60 * 60 /* Time ESP32 will go to sleep (in seconds) */
 
 void print_wakeup_reason() {
     esp_sleep_wakeup_cause_t wakeup_reason;
@@ -937,9 +937,9 @@ void ShowWeatherAndDate() {
     // 竖线
     display.drawLine(287, 34, 287, 64, 0);
     // 天气
-    String weather = cw.text;
+    String weather =currentWeather.text;
     weather.concat(" ");
-    weather.concat(cw.feelsLike);
+    weather.concat(currentWeather.feelsLike);
     weather.concat("°C");
     u8g2Fonts.setFont(u8g2_font_pingfang_regular_18pt);
     int16_t weatherWidth = u8g2Fonts.getUTF8Width(weather.c_str());
@@ -1037,7 +1037,7 @@ void ShowPsychology() {
     
     int16_t psyWidth = u8g2Fonts.getUTF8Width(psy.c_str());
     //  todo: 居中显示
-    DrawMultiLineString(psy, 60 + 12, 436 + 8, 300, 24);
+    DrawMultiLineString(psy, 60 + 12, 436 + 8, 300+12, 24);
 }
 
 // 心理学分类
@@ -1063,13 +1063,16 @@ void ShowPage(PageContent pageContent) {
     // 应该判断下咋决定是否刷新。例如距离上次请求超过多少小时再请求。
 
     // 初始化
-    cw = qwAPI.GetCurrentWeather(gi.id);
+
+    // 获取当前天气
+   currentWeather = qwAPI.GetCurrentWeather(gi.id);
 
     // get token
     token = soulapi.GetToken("admin@example.com", "123456");
     
     // 获取当天心理学知识点
     pd = soulapi.GetPsychologyDaily(token.access_token);
+    // 获取当天单词
     wd = soulapi.GetWordDaily(token.access_token);
 
 
@@ -1104,6 +1107,7 @@ void ShowPage(PageContent pageContent) {
          */
         ShowBorder();
         ShowHeaderLine();
+        // todo: 修复api 接口缓慢问题，或者去掉
         ShowWeatherAndDate();
         // 几号
         ShowCurrentMonthDay();
@@ -1117,7 +1121,7 @@ void ShowPage(PageContent pageContent) {
         ShowPsychology();
         ShowHLine2();
         ShowHLine();
-        // 那本书的
+        // 哪本书的
         ShowPsychologyType();
         // logo
         ShowLogo();

@@ -2,11 +2,12 @@
 #define _QWEATHER_H
 
 #include <Arduino.h>
-#include <Vector>
 #include <ArduinoJson.h>
-#include <WiFi.h>
 #include <HTTPClient.h>
+#include <WiFi.h>
 #include <WiFiClientSecure.h>
+
+#include <Vector>
 #include <string>
 
 using namespace std;
@@ -15,8 +16,7 @@ using namespace std;
  * @brief 按小时预测天气。。。和按天预测一样，请求越多需求内存越高
  * 
  */
-enum HourlyPredictionType
-{
+enum HourlyPredictionType {
     /**
      * @brief 1天的
      * 
@@ -31,30 +31,29 @@ enum HourlyPredictionType
      * @brief 7天的
      * 
      */
-    H128 =  128
+    H128 = 128
 };
 
 /**
  * @brief 按天获取预报的类型，同时请求的数据越多，对于处理数据的内存也越高。。。所以，能少请求就少请求
  * 
  */
-enum DailyPredictionType
-{
+enum DailyPredictionType {
     /**
      * @brief 3天
      * 
      */
-    D3 = 3, 
+    D3 = 3,
     /**
      * @brief 7天
      * 
      */
-    D7 = 7, 
+    D7 = 7,
     /**
      * @brief 10天
      * 
      */
-    D10 = 10, //6144
+    D10 = 10,  //6144
     /**
      * @brief 15天
      * 
@@ -66,8 +65,7 @@ enum DailyPredictionType
  * @brief 度量单位
  * 
  */
-enum UnitType
-{
+enum UnitType {
     /**
      * @brief 公制
      * 
@@ -84,8 +82,7 @@ enum UnitType
  * @brief API类型
  * 
  */
-enum APIVersion
-{
+enum APIVersion {
     /**
      * @brief 商业版本
      * 
@@ -102,9 +99,7 @@ enum APIVersion
  * @brief 基本天气信息
  * 
  */
-struct BasicWeatherData
-{
-
+struct BasicWeatherData {
     /**
      * @brief 天气状况图标
      * 
@@ -121,7 +116,7 @@ struct BasicWeatherData
  * @brief 风力数据
  * 
  */
-struct WindData{
+struct WindData {
     /**
      * @brief 风向360角度
      * 
@@ -141,16 +136,14 @@ struct WindData{
      * @brief 风速
      * 
      */
-    String windSpeed;    
+    String windSpeed;
 };
-
 
 /**
  * @brief 扩展天气数据
  * 
  */
-struct ExtendedWeatherData
-{
+struct ExtendedWeatherData {
     /**
      * @brief 相对湿度
      * 
@@ -191,16 +184,13 @@ struct ExtendedWeatherData
  * @brief 按日请求时每天的综合数据组合
  * 
  */
-struct DailyCommonData: BasicWeatherData, WindData
-{
-
+struct DailyCommonData : BasicWeatherData, WindData {
 };
 /**
  * @brief 按小时预报的天气情况
  * 
  */
-struct HourlyWeather: BasicWeatherData,WindData,ExtendedWeatherData
-{
+struct HourlyWeather : BasicWeatherData, WindData, ExtendedWeatherData {
     /**
      * @brief 预报时间
      * 
@@ -218,15 +208,12 @@ struct HourlyWeather: BasicWeatherData,WindData,ExtendedWeatherData
      * 
      */
     String pop;
-
-
 };
 /**
  * @brief 当前天气
  * 
  */
-struct CurrentWeather : BasicWeatherData, ExtendedWeatherData, WindData 
-{
+struct CurrentWeather : BasicWeatherData, ExtendedWeatherData, WindData {
     /**
      * @brief 实况观测时间
      * 
@@ -242,17 +229,13 @@ struct CurrentWeather : BasicWeatherData, ExtendedWeatherData, WindData
      * 
      */
     String feelsLike;
-
-
-
 };
 
 /**
  * @brief 按天预报的气象数据
  * 
  */
-struct DailyWeather: ExtendedWeatherData
-{
+struct DailyWeather : ExtendedWeatherData {
     /**
      * @brief 预报时间
      * 
@@ -304,15 +287,13 @@ struct DailyWeather: ExtendedWeatherData
      * 
      */
     DailyCommonData Night;
-
 };
 
 /**
  * @brief 和风天气API中位置信息
  * 
  */
-struct GeoInfo
-{
+struct GeoInfo {
     /**
      * @brief 地区/城市名称
      * 
@@ -380,14 +361,11 @@ struct GeoInfo
     String fxLink;
 };
 
-
-
 /**
  * @brief 空气质量基础数据
  * 
  */
-struct AirQualityData
-{
+struct AirQualityData {
     /**
      * @brief 空气质量发布时间
      * 
@@ -448,9 +426,7 @@ struct AirQualityData
  * @brief 空气质量监测站数据
  * 
  */
-struct AirStationData : AirQualityData
-{
-
+struct AirStationData : AirQualityData {
     /**
      * @brief 站点名称
      * 
@@ -467,8 +443,7 @@ struct AirStationData : AirQualityData
  * @brief 当前空气质量
  * 
  */
-struct CurrentAirQuality: AirQualityData
-{
+struct CurrentAirQuality : AirQualityData {
     /**
      * @brief 当前城市各个空气监测站数据
      * 
@@ -480,16 +455,15 @@ struct CurrentAirQuality: AirQualityData
  * @brief 和风天气API
  * 
  */
-class QWeather
-{
-private:
+class QWeather {
+   private:
     String _key;
     String _lang;
     UnitType _unitType;
     String GetLanguage();
     APIVersion _apiVersion;
 
-public:
+   public:
     /**
      * @brief Set the User Key
      * 
