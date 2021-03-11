@@ -31,12 +31,28 @@ struct Token{
     String token_type;
 };
 
-class Soul{
-    public:
+struct Lunar{
+    String date;
+    String ganzhi_year;
+    String ganzhi_month;
+    String ganzhi_day;
+    String shengxiao;
+};
 
-        PsychologyDaily GetPsychologyDaily(String token);
+class SoulAPI{
+    private:
+        String _token;
+    public:
+        void SetToken(String token);
+        void Config(String token);
+        // 获取 token 
         Token GetToken(String email, String password);
-        WordDaily GetWordDaily(String token);
+        // 获取心理学知识点
+        PsychologyDaily GetPsychologyDaily();
+        // 获取每日单词
+        WordDaily GetWordDaily();
+        // 获取农历信息
+        Lunar GetLunar();
 };
 
 #endif

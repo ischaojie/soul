@@ -481,13 +481,12 @@ GxEPD2_BW<GxEPD2_583_T8, GxEPD2_583_T8::HEIGHT> display(
 #endif
 
 #include <ArduinoJson.h>
-#include "MyIP.h"
-#include "QWeather.h"
-#include "soulapi.h"
+
 #include "SmartConfigManager.h"
 #include "config.h"
 #include "esp_bt.h"
 #include "esp_wifi.h"
+#include "soulapi.h"
 #if defined(ESP32)
 #include "SPIFFS.h"
 #endif
@@ -502,52 +501,47 @@ GxEPD2_BW<GxEPD2_583_T8, GxEPD2_583_T8::HEIGHT> display(
 
 U8G2_FOR_ADAFRUIT_GFX u8g2Fonts;
 #include <ESPDateTime.h>
+
 #include "ceep_english_word.h"
-#include "toxicsoul.h"
 
 const char* WEEKDAY_CN[] = {"周日", "周一", "周二", "周三",
                             "周四", "周五", "周六"};
-const char* WEEKDAY_EN[] = {"Sunday",   "Monday", "Tuesday", "Wednesday",
+const char* WEEKDAY_EN[] = {"Sunday", "Monday", "Tuesday", "Wednesday",
                             "Thursday", "Friday", "Saturday"};
-const char* MONTH_CN[] = {"一月", "二月", "三月", "四月", "五月",   "六月",
+const char* MONTH_CN[] = {"一月", "二月", "三月", "四月", "五月", "六月",
                           "七月", "八月", "九月", "十月", "十一月", "十二月"};
-const char* MONTH_EN[] = {"January",   "February", "March",    "April",
-                          "May",       "June",     "July",     "August",
-                          "September", "October",  "November", "December"};
+const char* MONTH_EN[] = {"January", "February", "March", "April",
+                          "May", "June", "July", "August",
+                          "September", "October", "November", "December"};
 const uint16_t SMARTCONFIG_QR_CODE_WIDTH = 120;
 const uint16_t SMARTCONFIG_QR_CODE_HEIGHT = 120;
-GeoInfo gi;
+
 int16_t DISPLAY_WIDTH;
 int16_t DISPLAY_HEIGHT;
 u8_t pageIndex = 0;
-QWeather qwAPI;
 
 // soul api
-Soul soulapi;
-// token
-Token token;
+SoulAPI soulapi;
 
 // api data
 PsychologyDaily pd;
 WordDaily wd;
+Lunar lunar;
 
-CurrentWeather currentWeather;
-CurrentAirQuality caq;
-vector<DailyWeather> dws;
 static const uint16_t input_buffer_pixels = 800;  // may affect performance
 
-static const uint16_t max_row_width = 800;  // for up to 7.5" display 800x480
+static const uint16_t max_row_width = 800;       // for up to 7.5" display 800x480
 static const uint16_t max_palette_pixels = 256;  // for depth <= 8
 
 uint8_t input_buffer[3 * input_buffer_pixels];  // up to depth 24
 uint8_t output_row_mono_buffer[max_row_width /
-                               8];  // buffer for at least one row of b/w bits
+                               8];                   // buffer for at least one row of b/w bits
 uint8_t output_row_color_buffer[max_row_width / 8];  // buffer for at least one
                                                      // row of color bits
 uint8_t mono_palette_buffer[max_palette_pixels /
                             8];  // palette buffer for depth <= 8 b/w
 uint8_t color_palette_buffer[max_palette_pixels /
-                             8];  // palette buffer for depth <= 8 c/w
+                             8];                  // palette buffer for depth <= 8 c/w
 uint16_t rgb_palette_buffer[max_palette_pixels];  // palette buffer for depth <=
                                                   // 8 for buffered graphics,
                                                   // needed for 7-color display
@@ -558,11 +552,13 @@ uint16_t rgb_palette_buffer[max_palette_pixels];  // palette buffer for depth <=
 // 在偶然的电源消耗问题造成的重启过程中，可能会导致数据丢失。所以他用了RTC_NOINIT_ATTR
 // 代替了 RTC_DATA_ATTR
 RTC_NOINIT_ATTR u8_t LASTPAGE = -1;
+RTC_DATA_ATTR int bootCount = 0;
 
 #define uS_TO_S_FACTOR \
-    1000000 /* Conversion factor for micro seconds to seconds */
-#define TIME_TO_SLEEP 60 * 60 /* Time ESP32 will go to sleep (in seconds) */
+    1000000                /* Conversion factor for micro seconds to seconds */
+#define TIME_TO_SLEEP 3600 /* Time ESP32 will go to sleep (in seconds) */
 
+// 唤醒原因
 void print_wakeup_reason() {
     esp_sleep_wakeup_cause_t wakeup_reason;
 
@@ -914,7 +910,8 @@ void ShowWiFiSmartConfig() {
     drawBitmapFromSpiffs_Buffered("smartconfig.bmp", x, y, false, true, false);
 }
 
-enum PageContent : u8_t { CALENDAR = 0, WEATHER = 1 };
+// enum PageContent : u8_t { CALENDAR = 0,
+//                           WEATHER = 1 };
 
 // 头部横线
 void ShowHeaderLine() {
@@ -922,35 +919,45 @@ void ShowHeaderLine() {
     display.drawLine(28, 28, DISPLAY_WIDTH - 28, 28, 0);
 }
 
-// 头部日期和天气
-void ShowWeatherAndDate() {
+// 头部日期
+void ShowLunarAndDate() {
     // 日期
     u8g2Fonts.setFont(u8g2_font_pingfang_heavy_20pt);
     time_t t = DateTime.now();
+    int16_t tWidth = u8g2Fonts.getUTF8Width(t.c_str());
     u8g2Fonts.drawUTF8(28, 34 + 28, DateFormatter::format("%m.%d", t).c_str());
 
     // 星期
-    u8g2Fonts.setFont(u8g2_font_pingfang_regular_12pt);
-    u8g2Fonts.drawUTF8(102, 34 + 28,
+    u8g2Fonts.setFont(u8g2_font_pingfang_regular_9pt);
+
+    u8g2Fonts.drawUTF8(28 + tWidth, 34 + 8,
                        WEEKDAY_CN[DateTime.getParts().getWeekDay()]);
 
     // 竖线
     display.drawLine(287, 34, 287, 64, 0);
-    // 天气
-    String weather =currentWeather.text;
-    weather.concat(" ");
-    weather.concat(currentWeather.feelsLike);
-    weather.concat("°C");
-    u8g2Fonts.setFont(u8g2_font_pingfang_regular_18pt);
-    int16_t weatherWidth = u8g2Fonts.getUTF8Width(weather.c_str());
-    u8g2Fonts.drawUTF8(DISPLAY_WIDTH - weatherWidth - 28, 36 + 24,
-                       weather.c_str());
 
-    // 城市
-    u8g2Fonts.setFont(u8g2_font_pingfang_regular_18pt);
-    int16_t cityNameWidth = u8g2Fonts.getUTF8Width(gi.name.c_str());
-    u8g2Fonts.drawUTF8((DISPLAY_WIDTH - cityNameWidth - weatherWidth - 28),
-                       36 + 24, gi.name.c_str());
+    // 农历 1
+    String lunarLine1 = "农历";
+    lunarLine1.concat(" ");
+    lunarLine1.concat(lunar.date);
+    u8g2Fonts.setFont(u8g2_font_pingfang_regular_12pt);
+    int16_t lunarLine1Width = u8g2Fonts.getUTF8Width(lunarLine1.c_str());
+    u8g2Fonts.drawUTF8(DISPLAY_WIDTH - lunarLine1Width - 28, 34 + 8,
+                       lunarLine1.c_str());
+
+    // 农历 2
+    String lunarLine2 = lunar.ganzhi_year;
+    lunarLine2.concat(" ");
+    lunarLine2.concat(lunar.ganzhi_month);
+    lunarLine2.concat("月");
+    lunarLine2.concat(" ");
+    lunarLine2.concat(lunar.ganzhi_day);
+    lunarLine2.concat("日");
+    u8g2Fonts.setFont(u8g2_font_pingfang_regular_12pt);
+
+    int16_t lunarLine2Width = u8g2Fonts.getUTF8Width(lunarLine2.c_str());
+    u8g2Fonts.drawUTF8((DISPLAY_WIDTH - lunarLine2Width - 28),
+                       36 + 28, lunarLine2.c_str());
 }
 
 // 外边框
@@ -1013,7 +1020,6 @@ void ShowLeftoverDay() {
 
 // 随机考研英语单词展示
 void ShowRandomEnglishWord() {
-   
     string word = wd.origin + " " + wd.translation;
     u8g2Fonts.setFont(u8g2_font_pingfang_regular_18pt);
     // todo: maybe just need one line
@@ -1033,11 +1039,11 @@ void ShowHLine2() {
 void ShowPsychology() {
     u8g2Fonts.setFont(u8g2_font_pingfang_regular_12pt);
 
-     string psy = pd.knowledge;
-    
+    string psy = pd.knowledge;
+
     int16_t psyWidth = u8g2Fonts.getUTF8Width(psy.c_str());
     //  todo: 居中显示
-    DrawMultiLineString(psy, 60 + 12, 436 + 8, 300+12, 24);
+    DrawMultiLineString(psy, 60 + 12, 436 + 8, 300 + 12, 24);
 }
 
 // 心理学分类
@@ -1059,22 +1065,20 @@ void ShowLogo() {
     u8g2Fonts.drawUTF8(DISPLAY_WIDTH - giftWidth - 56, 604 + 12, gift.c_str());
 }
 // 最终展示界面
-void ShowPage(PageContent pageContent) {
+void ShowPage() {
     // 应该判断下咋决定是否刷新。例如距离上次请求超过多少小时再请求。
 
     // 初始化
 
     // 获取当前天气
-   currentWeather = qwAPI.GetCurrentWeather(gi.id);
+    // currentWeather = qwAPI.GetCurrentWeather(gi.id);
 
-    // get token
-    token = soulapi.GetToken("admin@example.com", "123456");
-    
     // 获取当天心理学知识点
-    pd = soulapi.GetPsychologyDaily(token.access_token);
+    pd = soulapi.GetPsychologyDaily();
     // 获取当天单词
-    wd = soulapi.GetWordDaily(token.access_token);
-
+    wd = soulapi.GetWordDaily();
+    // 获取农历
+    lunar = soulapi.GetLunar();
 
     // caq = qwAPI.GetCurrentAirQuality(gi.id);
     // dws = qwAPI.GetDailyWeather(gi.id);
@@ -1083,8 +1087,8 @@ void ShowPage(PageContent pageContent) {
     display.clearScreen(GxEPD_WHITE);
     display.setRotation(3);
 
-    u8g2Fonts.setFontMode(1);  // use u8g2 transparent mode (this is default)
-    u8g2Fonts.setFontDirection(0);  // left to right (this is default)
+    u8g2Fonts.setFontMode(1);                   // use u8g2 transparent mode (this is default)
+    u8g2Fonts.setFontDirection(0);              // left to right (this is default)
     u8g2Fonts.setForegroundColor(GxEPD_BLACK);  // apply Adafruit GFX color
     u8g2Fonts.setBackgroundColor(GxEPD_WHITE);  // apply Adafruit GFX color
 
@@ -1107,8 +1111,8 @@ void ShowPage(PageContent pageContent) {
          */
         ShowBorder();
         ShowHeaderLine();
-        // todo: 修复api 接口缓慢问题，或者去掉
-        ShowWeatherAndDate();
+
+        ShowLunarAndDate();
         // 几号
         ShowCurrentMonthDay();
         // 剩余几天
@@ -1149,7 +1153,14 @@ void ShowPage(PageContent pageContent) {
 // arduino 初始化
 void setup() {
     Serial.begin(115200);
+    delay(1000);
     Serial.println();
+    //Increment boot number and print it every reboot
+    ++bootCount;
+    Serial.println("Boot number: " + String(bootCount));
+    // 输出唤醒原因
+    print_wakeup_reason();
+
     String logo;
     logo.concat("   _____             _ \n");
     logo.concat("  / ____|           | |\n");
@@ -1157,18 +1168,14 @@ void setup() {
     logo.concat("  \\___ \\ / _ \\| | | | |\n");
     logo.concat("  ____) | (_) | |_| | |\n");
     logo.concat(" |_____/ \\___/ \\__,_|_|\n");
-
     Serial.println(logo);
     Serial.println("----A gift for lan");
-    Serial.println("Soul setup:");
 
+    Serial.println("Soul setup:");
     // 定时唤醒
     esp_sleep_enable_timer_wakeup(TIME_TO_SLEEP * uS_TO_S_FACTOR);
     Serial.println("Setup ESP32 to sleep for every " + String(TIME_TO_SLEEP) +
                    " Seconds");
-
-    // 输出唤醒原因
-    print_wakeup_reason();
 
     // SPI
     SPI.end();
@@ -1188,35 +1195,39 @@ void setup() {
     DISPLAY_HEIGHT = display.height();
 
     // 字体 display 初始化
-    u8g2Fonts.begin(display);  // connect u8g2 procedures to Adafruit GFX
-    u8g2Fonts.setFontMode(1);  // use u8g2 transparent mode (this is default)
-    u8g2Fonts.setFontDirection(0);  // left to right (this is default)
+    u8g2Fonts.begin(display);                   // connect u8g2 procedures to Adafruit GFX
+    u8g2Fonts.setFontMode(1);                   // use u8g2 transparent mode (this is default)
+    u8g2Fonts.setFontDirection(0);              // left to right (this is default)
     u8g2Fonts.setForegroundColor(GxEPD_BLACK);  // apply Adafruit GFX color
     u8g2Fonts.setBackgroundColor(GxEPD_WHITE);  // apply Adafruit GFX color
 
+    // init wifi
     SmartConfigManager scm;
     scm.initWiFi(ShowWiFiSmartConfig);
 
-    qwAPI.Config(QWEATHER_API_KEY);
+    // soul api init config
+    soulapi.Config(SOULAPI_TOKEN);
 
-    MyIP myIP(Language::CHINESE);
-    Serial.printf("IP: %s\n", myIP.IP.c_str());
-    Serial.printf("City: %s\n", myIP.City.c_str());
+    // 获取 ip location
+    // MyIP myIP(Language::CHINESE);
+    // Serial.printf("IP: %s\n", myIP.IP.c_str());
+    // Serial.printf("City: %s\n", myIP.City.c_str());
 
-    gi = qwAPI.GetGeoInfo(myIP.City, myIP.Province);
-    Serial.printf("从和风天气中取到匹配城市: %s\n", gi.name.c_str());
+    // gi = qwAPI.GetGeoInfo(myIP.City, myIP.Province);
+    // Serial.printf("从和风天气中取到匹配城市: %s\n", gi.name.c_str());
 
     setupDateTime();
 
     // 内容展示
-    ++LASTPAGE;
-    if (LASTPAGE > PageContent::WEATHER)
-        LASTPAGE = PageContent::CALENDAR;
+    // ++LASTPAGE;
+    // if (LASTPAGE > PageContent::WEATHER)
+    //     LASTPAGE = PageContent::CALENDAR;
 
-    ShowPage((PageContent)LASTPAGE);
+    ShowPage();
 
     Serial.println("-------  SETUP FINISHED  -----------");
     Serial.println("zzzzzZZZZZZZ~~ ~~ ~~");
+    delay(1000);
     Serial.flush();
 
     /**
@@ -1224,7 +1235,9 @@ void setup() {
      *
      */
     esp_bt_controller_disable();
+
     esp_wifi_stop();
+
     esp_deep_sleep_start();
 }
 

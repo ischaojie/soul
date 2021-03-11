@@ -1,4 +1,5 @@
 #include "soulapi.h"
+
 #include "urlencode.h"
 
 const String SOUL_API_PSYCHOLOGY_URL =
@@ -7,10 +8,19 @@ const String SOUL_API_WORD_URL =
     "http://soul.shiniao.fun/api/v1/words/daily";
 
 const String SOUL_API_LOGIN_URL = "http://soul.shiniao.fun/api/v1/login";
+const String SOUL_API_LUNAR_URL = "http://soul.shiniao.fun/api/v1/utils/lunar";
 
-Token Soul::GetToken(String email, String password) {
+void SoulAPI::Config(String token) {
+    SetToken(token);
+}
+void SoulAPI::SetToken(String token) {
+    _token = token;
+}
+
+Token SoulAPI::GetToken(String email, String password) {
     WiFiClientSecure client;
     client.setInsecure();
+
     HTTPClient httpClient;
     Token result;
     String requestUrl = SOUL_API_LOGIN_URL;
@@ -40,7 +50,7 @@ Token Soul::GetToken(String email, String password) {
     return result;
 }
 
-PsychologyDaily Soul::GetPsychologyDaily(String token) {
+PsychologyDaily SoulAPI::GetPsychologyDaily() {
     WiFiClientSecure client;
     client.setInsecure();
     HTTPClient httpClient;
@@ -49,9 +59,9 @@ PsychologyDaily Soul::GetPsychologyDaily(String token) {
 
     Serial.println(requestUrl);
 
-    if (token != "") {
+    if (_token != "") {
         if (httpClient.begin(requestUrl)) {
-            String auth = "Bearer " + token;
+            String auth = "Bearer " + _token;
             httpClient.addHeader("Authorization", auth, false, true);
             int httpCode = httpClient.GET();
 
@@ -96,7 +106,7 @@ PsychologyDaily Soul::GetPsychologyDaily(String token) {
     return result;
 }
 
-WordDaily Soul::GetWordDaily(String token) {
+WordDaily SoulAPI::GetWordDaily() {
     WiFiClientSecure client;
     client.setInsecure();
     HTTPClient httpClient;
@@ -105,9 +115,9 @@ WordDaily Soul::GetWordDaily(String token) {
 
     Serial.println(requestUrl);
 
-    if (token != "") {
+    if (_token != "") {
         if (httpClient.begin(requestUrl)) {
-            String auth = "Bearer " + token;
+            String auth = "Bearer " + _token;
             httpClient.addHeader("Authorization", auth, false, true);
             int httpCode = httpClient.GET();
 
@@ -128,6 +138,48 @@ WordDaily Soul::GetWordDaily(String token) {
             }
         } else {
             Serial.println("Get word daily failed");
+        }
+    }
+
+    httpClient.end();
+    client.stop();
+    return result;
+}
+
+Lunar SoulAPI::GetLunar() {
+    WiFiClientSecure client;
+    client.setInsecure();
+    HTTPClient httpClient;
+    Lunar result;
+    String requestUrl = SOUL_API_LUNAR_URL;
+
+    Serial.println(requestUrl);
+
+    if (_token != "") {
+        if (httpClient.begin(requestUrl)) {
+            String auth = "Bearer " + _token;
+            httpClient.addHeader("Authorization", auth, false, true);
+            int httpCode = httpClient.GET();
+
+            if (httpCode == HTTP_CODE_OK ||
+                httpCode == HTTP_CODE_MOVED_PERMANENTLY) {
+                String payload = httpClient.getString();
+                Serial.println(payload);
+                DynamicJsonDocument lunar(1024);
+                deserializeJson(lunar, payload);
+                result.date = lunar["date"].as<String>();
+                result.ganzhi_year = lunar["ganzhi_year"].as<String>();
+                result.ganzhi_month = lunar["ganzhi_month"].as<String>();
+                result.ganzhi_day = lunar["ganzhi_day"].as<String>();
+
+            } else {
+                Serial.printf(
+                    "Get lunar failed, the http status code "
+                    "is:%d\n",
+                    httpCode);
+            }
+        } else {
+            Serial.println("Get lunar failed");
         }
     }
 
