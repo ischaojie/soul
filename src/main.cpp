@@ -479,15 +479,14 @@ GxEPD2_BW<GxEPD2_583_T8, GxEPD2_583_T8::HEIGHT> display(
 // display(GxEPD2_565c(/*CS=10*/ SS, /*DC=*/ 8, /*RST=*/ 9, /*BUSY=*/ 7)); //
 // Waveshare 5.65" 7-color
 #endif
-#include "soc/soc.h"
-#include "soc/rtc_cntl_reg.h"
-
 #include <ArduinoJson.h>
 
 #include "SmartConfigManager.h"
 #include "config.h"
 #include "esp_bt.h"
 #include "esp_wifi.h"
+#include "soc/rtc_cntl_reg.h"
+#include "soc/soc.h"
 #include "soulapi.h"
 #if defined(ESP32)
 #include "SPIFFS.h"
@@ -557,7 +556,7 @@ RTC_NOINIT_ATTR u8_t LASTPAGE = -1;
 RTC_DATA_ATTR int bootCount = 0;
 
 #define uS_TO_S_FACTOR \
-    1000000                /* Conversion factor for micro seconds to seconds */
+    1000000                   /* Conversion factor for micro seconds to seconds */
 #define TIME_TO_SLEEP 60 * 60 /* Time ESP32 will go to sleep (in seconds) */
 
 // 唤醒原因
@@ -1146,6 +1145,8 @@ void ShowPage() {
 
 // arduino 初始化
 void setup() {
+    // 🐞fix: Brownout detector was triggered
+    // 关闭brownout detector
     WRITE_PERI_REG(RTC_CNTL_BROWN_OUT_REG, 0);
     Serial.begin(115200);
     delay(1000);
