@@ -479,6 +479,8 @@ GxEPD2_BW<GxEPD2_583_T8, GxEPD2_583_T8::HEIGHT> display(
 // display(GxEPD2_565c(/*CS=10*/ SS, /*DC=*/ 8, /*RST=*/ 9, /*BUSY=*/ 7)); //
 // Waveshare 5.65" 7-color
 #endif
+#include "soc/soc.h"
+#include "soc/rtc_cntl_reg.h"
 
 #include <ArduinoJson.h>
 
@@ -556,7 +558,7 @@ RTC_DATA_ATTR int bootCount = 0;
 
 #define uS_TO_S_FACTOR \
     1000000                /* Conversion factor for micro seconds to seconds */
-#define TIME_TO_SLEEP 3600 /* Time ESP32 will go to sleep (in seconds) */
+#define TIME_TO_SLEEP 60 * 60 /* Time ESP32 will go to sleep (in seconds) */
 
 // 唤醒原因
 void print_wakeup_reason() {
@@ -924,13 +926,13 @@ void ShowLunarAndDate() {
     // 日期
     u8g2Fonts.setFont(u8g2_font_pingfang_heavy_20pt);
     time_t t = DateTime.now();
-    int16_t tWidth = u8g2Fonts.getUTF8Width(t.c_str());
+    int16_t tWidth = u8g2Fonts.getUTF8Width(DateFormatter::format("%m.%d", t).c_str());
     u8g2Fonts.drawUTF8(28, 34 + 28, DateFormatter::format("%m.%d", t).c_str());
 
     // 星期
     u8g2Fonts.setFont(u8g2_font_pingfang_regular_9pt);
 
-    u8g2Fonts.drawUTF8(28 + tWidth, 34 + 8,
+    u8g2Fonts.drawUTF8(32 + tWidth, 34 + 18,
                        WEEKDAY_CN[DateTime.getParts().getWeekDay()]);
 
     // 竖线
@@ -942,7 +944,7 @@ void ShowLunarAndDate() {
     lunarLine1.concat(lunar.date);
     u8g2Fonts.setFont(u8g2_font_pingfang_regular_12pt);
     int16_t lunarLine1Width = u8g2Fonts.getUTF8Width(lunarLine1.c_str());
-    u8g2Fonts.drawUTF8(DISPLAY_WIDTH - lunarLine1Width - 28, 34 + 8,
+    u8g2Fonts.drawUTF8(DISPLAY_WIDTH - lunarLine1Width - 28, 34 + 10,
                        lunarLine1.c_str());
 
     // 农历 2
@@ -1066,12 +1068,7 @@ void ShowLogo() {
 }
 // 最终展示界面
 void ShowPage() {
-    // 应该判断下咋决定是否刷新。例如距离上次请求超过多少小时再请求。
-
     // 初始化
-
-    // 获取当前天气
-    // currentWeather = qwAPI.GetCurrentWeather(gi.id);
 
     // 获取当天心理学知识点
     pd = soulapi.GetPsychologyDaily();
@@ -1079,9 +1076,6 @@ void ShowPage() {
     wd = soulapi.GetWordDaily();
     // 获取农历
     lunar = soulapi.GetLunar();
-
-    // caq = qwAPI.GetCurrentAirQuality(gi.id);
-    // dws = qwAPI.GetDailyWeather(gi.id);
 
     display.setFullWindow();
     display.clearScreen(GxEPD_WHITE);
@@ -1152,6 +1146,7 @@ void ShowPage() {
 
 // arduino 初始化
 void setup() {
+    WRITE_PERI_REG(RTC_CNTL_BROWN_OUT_REG, 0);
     Serial.begin(115200);
     delay(1000);
     Serial.println();
@@ -1172,8 +1167,13 @@ void setup() {
     Serial.println("----A gift for lan");
 
     Serial.println("Soul setup:");
+
     // 定时唤醒
-    esp_sleep_enable_timer_wakeup(TIME_TO_SLEEP * uS_TO_S_FACTOR);
+    // esp_sleep_enable_timer_wakeup(TIME_TO_SLEEP * uS_TO_S_FACTOR);
+    // 设置唤醒时间为 1hour
+    // bugs：使用 TIME_TO_SLEEP * uS_TO_S_FACTOR 会不断重启，待解决
+    esp_sleep_enable_timer_wakeup(3600000000);
+
     Serial.println("Setup ESP32 to sleep for every " + String(TIME_TO_SLEEP) +
                    " Seconds");
 
