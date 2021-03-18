@@ -1023,7 +1023,7 @@ void ShowLeftoverDay() {
 void ShowRandomEnglishWord() {
     string word = wd.origin + " " + wd.translation;
     u8g2Fonts.setFont(u8g2_font_pingfang_regular_18pt);
-    // todo: maybe just need one line
+    // maybe just need one line
     int16_t wordWidth = u8g2Fonts.getUTF8Width(word.c_str());
     DrawMultiLineString(word, (DISPLAY_WIDTH - wordWidth) / 2, 332 + 42,
                         DISPLAY_WIDTH - 28 * 2, 36);
@@ -1043,7 +1043,7 @@ void ShowPsychology() {
     string psy = pd.knowledge;
 
     int16_t psyWidth = u8g2Fonts.getUTF8Width(psy.c_str());
-    //  todo: 居中显示
+    // 居中显示
     DrawMultiLineString(psy, 60 + 12, 436 + 8, 300 + 12, 24);
 }
 
