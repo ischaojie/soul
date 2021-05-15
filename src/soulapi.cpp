@@ -3,12 +3,12 @@
 #include "urlencode.h"
 
 const String SOUL_API_PSYCHOLOGY_URL =
-    "http://soul.shiniao.fun/api/v1/psychologies/daily";
+    "https://soul.chaojie.fun/api/v1/psychologies/daily";
 const String SOUL_API_WORD_URL =
-    "http://soul.shiniao.fun/api/v1/words/daily";
+    "https://soul.chaojie.fun/api/v1/words/daily";
 
-const String SOUL_API_LOGIN_URL = "http://soul.shiniao.fun/api/v1/login";
-const String SOUL_API_LUNAR_URL = "http://soul.shiniao.fun/api/v1/utils/lunar";
+const String SOUL_API_LOGIN_URL = "https://soul.chaojie.fun/api/v1/login";
+const String SOUL_API_LUNAR_URL = "https://soul.chaojie.fun/api/v1/utils/lunar";
 
 void SoulAPI::Config(String token) {
     SetToken(token);
